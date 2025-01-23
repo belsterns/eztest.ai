@@ -1,55 +1,80 @@
-import { NextResponse } from "next/server";
-import { Octokit } from "octokit";
+import { NextRequest, NextResponse } from 'next/server';
+import axios from 'axios';
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const octokit = new Octokit({ auth: GITHUB_TOKEN });
+const GITHUB_API_BASE_URL = 'https://api.github.com';
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // Add your GitHub token in .env file
 
-// Function to parse the raw request body
-async function getRawBody(req: Request): Promise<string> {
-  const buffer = await req.arrayBuffer();
-  return Buffer.from(buffer).toString("utf-8");
-}
-
-export const POST = async (req: Request) => {
+export async function POST(req: NextRequest) {
   try {
-    const rawBody = await getRawBody(req);
-    const payload = JSON.parse(rawBody);
+    // Parse the GitHub webhook payload
+    const payload = await req.json();
 
-    const { repository, ref } = payload;
+    const branchRef = payload.ref; // Get the branch ref (e.g., refs/heads/main)
+    const repoFullName = payload.repository.full_name; // Get the repository full name (e.g., owner/repo)
 
-    if (!repository || !ref) {
-      return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
+    // Validate that the webhook event contains a branch reference
+    if (!branchRef || !branchRef.startsWith('refs/heads/')) {
+      return NextResponse.json(
+        { message: 'Not a branch commit or invalid event type' },
+        { status: 400 }
+      );
     }
 
-    const owner = repository.owner.login;
-    const repo = repository.name;
-    const sourceBranch = ref.replace("refs/heads/", ""); // Extract branch name (e.g., "main")
-    const newBranchName = `${sourceBranch}_unitTest`;
+    // Extract the branch name (e.g., "main" from "refs/heads/main")
+    const baseBranch = branchRef.replace('refs/heads/', '');
 
-    // Fetch the latest commit SHA of the source branch
-    const branchInfo = await octokit.rest.repos.getBranch({
-      owner,
-      repo,
-      branch: sourceBranch,
-    });
-    const commitSha = branchInfo.data.commit.sha;
+    // Skip processing if the branch is already a "unitTest" branch
+    if (baseBranch.endsWith('_unitTest')) {
+      console.log('Skipping webhook for unit test branch:', baseBranch);
+      return NextResponse.json(
+        { message: 'Skipping webhook for unit test branch' },
+        { status: 200 }
+      );
+    }
+
+    // Define the new branch name
+    const suffix = '_unitTest';
+    const newBranch = `${baseBranch}${suffix}`;
+
+    // Fetch the latest commit SHA for the base branch
+    const branchResponse = await axios.get(
+      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    );
+
+    const latestCommitSHA = branchResponse.data.object.sha;
 
     // Create the new branch
-    await octokit.rest.git.createRef({
-      owner,
-      repo,
-      ref: `refs/heads/${newBranchName}`,
-      sha: commitSha,
-    });
+    await axios.post(
+      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/git/refs`,
+      {
+        ref: `refs/heads/${newBranch}`,
+        sha: latestCommitSHA,
+      },
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json',
+          'X-Triggered-By': 'MyApp', // Custom header to identify self-triggered events
+        },
+      }
+    );
 
-    return NextResponse.json({
-      message: `New branch '${newBranchName}' created from '${sourceBranch}'`,
-    });
-  } catch (error: any) {
-    console.error("Error processing webhook:", error);
+    console.log(`Branch '${newBranch}' created successfully.`);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { message: `Branch '${newBranch}' created successfully.` },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error('Error creating branch:', error.response?.data || error.message);
+    return NextResponse.json(
+      { message: 'Failed to create branch', error: error.response?.data || error.message },
       { status: 500 }
     );
   }
-};
+}
