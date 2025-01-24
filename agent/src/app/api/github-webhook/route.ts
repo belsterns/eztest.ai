@@ -4,6 +4,36 @@ import axios from 'axios';
 const GITHUB_API_BASE_URL = 'https://api.github.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // Add your GitHub token in .env file
 
+// Recursive function to fetch repository file structure
+async function fetchRepoFiles(repoFullName: any, branchName: any, directory = ''): Promise<any> {
+  const files = [];
+  try {
+    // Fetch files in the specified directory
+    const response = await axios.get(
+      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/contents/${directory}?ref=${branchName}`,
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    );
+
+    for (const item of response.data) {
+      if (item.type === 'file') {
+        files.push({ name: item.name, path: item.path, type: item.type });
+      } else if (item.type === 'dir') {
+        // If it's a directory, fetch its contents recursively
+        const subFiles = await fetchRepoFiles(repoFullName, branchName, item.path);
+        files.push(...subFiles);
+      }
+    }
+  } catch (error: any) {
+    console.error('Error fetching repository files:', error.message);
+  }
+  return files;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Parse the GitHub webhook payload
@@ -106,22 +136,8 @@ export async function POST(req: NextRequest) {
 
     console.log(`Branch '${newBranch}' created successfully.`);
 
-    // Fetch the file structure of the created branch
-    const repoContentResponse = await axios.get(
-      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/contents?ref=${newBranch}`,
-      {
-        headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      }
-    );
-
-    const repoFiles = repoContentResponse.data.map((file: any) => ({
-      name: file.name,
-      path: file.path,
-      type: file.type, // 'file' or 'dir'
-    }));
+    // Fetch the complete repository file structure recursively
+    const repoFiles = await fetchRepoFiles(repoFullName, newBranch);
 
     console.log('Response:', {
       message: `Branch '${newBranch}' created successfully.`,
