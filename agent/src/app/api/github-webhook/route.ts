@@ -20,7 +20,7 @@ async function fetchFileContent(
         },
       }
     );
-    return response.data.content.replace(/\n/g, '').replace(/\+/g, ' ');
+    return response.data.content
   } catch (error: any) {
     console.error(
       `Error fetching content for file '${filePath}':`,
