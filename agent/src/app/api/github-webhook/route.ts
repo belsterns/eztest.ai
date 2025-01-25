@@ -20,7 +20,7 @@ async function fetchFileContent(
         },
       }
     );
-    return response.data.content
+    return response.data.content;
   } catch (error: any) {
     console.error(
       `Error fetching content for file '${filePath}':`,
@@ -30,48 +30,29 @@ async function fetchFileContent(
   }
 }
 
-// Recursive function to fetch repository file structure with content
-async function fetchRepoFiles(
+// Function to fetch content for added/modified files only
+async function fetchModifiedFileContents(
   repoFullName: any,
   branchName: any,
-  directory = ""
+  changedFiles: any
 ): Promise<any> {
   const files = [];
-  try {
-    const response = await axios.get(
-      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/contents/${directory}?ref=${branchName}`,
-      {
-        headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
-          Accept: "application/vnd.github.v3+json",
-        },
-      }
-    );
 
-    for (const item of response.data) {
-      if (item.type === "file") {
-        const content = await fetchFileContent(
-          repoFullName,
-          branchName,
-          item.path
-        );
-        files.push({
-          name: item.name,
-          path: item.path,
-          type: item.type,
-          content, // Include Base64-encoded content
-        });
-      } else if (item.type === "dir") {
-        const subFiles = await fetchRepoFiles(
-          repoFullName,
-          branchName,
-          item.path
-        );
-        files.push(...subFiles);
-      }
+  // Filter added/modified files and fetch their content
+  for (const file of changedFiles) {
+    if (file.status === "added" || file.status === "modified") {
+      const content = await fetchFileContent(
+        repoFullName,
+        branchName,
+        file.filename
+      );
+      files.push({
+        name: file.filename,
+        path: file.filename,
+        type: file.status,
+        content, // Include Base64-encoded content
+      });
     }
-  } catch (error: any) {
-    console.error("Error fetching repository files:", error.message);
   }
   return files;
 }
@@ -169,7 +150,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`Branch '${newBranch}' created successfully.`);
 
-    const repoFiles = await fetchRepoFiles(repoFullName, newBranch);
+    const repoFiles = await fetchModifiedFileContents(repoFullName, newBranch, changedFiles);
 
     console.log("Response:", {
       message: `Branch '${newBranch}' created successfully.`,
