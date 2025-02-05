@@ -99,8 +99,8 @@ export class WebhookService {
           message,
           branch: newBranch,
           committer: {
-            name: "Automated Commit",
-            email: "automated@commit.com",
+            name: "EZTest AI",
+            email: "eztest.ai@commit.com",
           },
           content,
         },
