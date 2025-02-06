@@ -121,7 +121,7 @@ export class WebhookService {
     }
   }
 
-  async processWebhook(repoFullName: string, baseBranch: string, payload: any) {
+  async processWebhook(repoFullName: string, baseBranch: string) {
     const suffix = "_unitTest";
     const newBranch = `${baseBranch}${suffix}`;
 
@@ -214,7 +214,7 @@ export class WebhookService {
       }
     );
 
-    let langFlowData = JSON.parse(
+    const langFlowData = JSON.parse(
       langflowResponse.data.outputs[0].outputs[0].results.text.data.text
     );
     for (const file of langFlowData.value) {

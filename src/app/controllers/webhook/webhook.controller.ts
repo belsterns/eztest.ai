@@ -34,8 +34,7 @@ export class WebhookController {
 
       const response = await this.webhookService.processWebhook(
         repoFullName,
-        baseBranch,
-        payload
+        baseBranch
       );
 
       return NextResponse.json(response, { status: 201 });
