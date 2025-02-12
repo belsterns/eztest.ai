@@ -1,6 +1,6 @@
+import { StaticMessage } from "@/app/constants/StaticMessages";
 import { RepositoryController } from "@/app/controllers/repositories/repository.controller";
 import { NextRequest, NextResponse } from "next/server";
-import { StaticMessage } from "../../../constants/StaticMessages";
 
 const repositoryController = new RepositoryController();
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await repositoryController.findRepositoryDetails(
+    const response = await repositoryController.SaveRepositoryDetails(
       body,
       repoToken
     );

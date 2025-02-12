@@ -1,6 +1,8 @@
 import { RepositoryService } from "@/app/services/repositories/repository.service";
 import { RepositoryVerificationValidator } from "@/app/validator/RepositoryVerificationValidator";
 import { StaticMessage } from "@/app/constants/StaticMessages";
+import { SaveRepositoryDetails } from "@/app/infrastructure/dtos/SaveRepositoryDetails";
+import { v4 as uuidv4 } from "uuid";
 
 export class RepositoryController {
   private repositoryService: RepositoryService;
@@ -52,6 +54,35 @@ export class RepositoryController {
       return {
         message: StaticMessage.RepositoryVerifiedSuccessfully,
         data: response,
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async SaveRepositoryDetails(body: SaveRepositoryDetails, repoToken: string) {
+    try {
+      await this.repositoryVerificationValidator.SaveRepositoryDetails(body);
+
+      await this.repositoryService.fetchRepoDetailsByName(
+        body.organization_name,
+        body.repo_name
+      );
+
+      const webhookUuid = uuidv4();
+      const webhookUrl = `${webhookUuid}/eztest`;
+
+      const updatedBody = {
+        ...body,
+        token: repoToken,
+        webhook_url: webhookUrl,
+      };
+
+      await this.repositoryService.saveRepositoryDetails(updatedBody);
+
+      return {
+        message: StaticMessage.RepoDetailsSavedSuccessfully,
+        data: { webhook_url: webhookUrl },
       };
     } catch (error: any) {
       throw error;

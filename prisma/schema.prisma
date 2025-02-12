@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Repository {
+  id                Int      @id @default(autoincrement())
+  uuid              String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nocobase_id       String
+  host_url          String
+  webhook_url       String   @unique
+  remote_origin     String
+  organization_name String
+  repo_name         String
+  token             String
+  is_active         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+}
