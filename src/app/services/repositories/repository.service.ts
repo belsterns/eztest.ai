@@ -5,6 +5,7 @@ import { BitbucketStrategy } from "@/app/infrastructure/strategies/BitbucketStra
 import { GiteaStrategy } from "@/app/infrastructure/strategies/GiteaStrategy";
 import prisma from "@/lib/prisma";
 import { StaticMessage } from "@/app/constants/StaticMessages";
+import { decryptToken, encryptToken } from "@/app/utils/cryptoUtils";
 
 export class RepositoryService {
   private strategyMap: Map<string, IRepoStrategy>;
@@ -28,7 +29,7 @@ export class RepositoryService {
 
   async fetchRepoDetailsByName(orgName: string, repoName: string) {
     try {
-      const existingRepo = await prisma.repository.findFirst({
+      const existingRepo = await prisma.repositories.findFirst({
         where: {
           organization_name: orgName,
           repo_name: repoName,
@@ -36,30 +37,43 @@ export class RepositoryService {
       });
 
       if (existingRepo) {
-        throw new Error(StaticMessage.RepoAlreadyExists);
+        throw {
+          statusCode: 400,
+          message: StaticMessage.RepoAlreadyExists,
+          data: null,
+        };
       }
     } catch (error: any) {
-      throw new Error(
-        error.message || "An error occurred while fetching repository details."
-      );
+      throw error;
     }
   }
 
   async saveRepositoryDetails(model: any) {
     try {
-      return await prisma.repository.create({
+      const {
+        host_url,
+        nocobase_id,
+        organization_name,
+        remote_origin,
+        repo_name,
+        token,
+        webhook_url,
+      } = model;
+      const encryptedToken = encryptToken(token);
+
+      return await prisma.repositories.create({
         data: {
-          nocobase_id: model.nocobase_id,
-          host_url: model.host_url,
-          webhook_url: model.webhook_url,
-          remote_origin: model.remote_origin,
-          repo_name: model.repo_name,
-          token: model.token,
-          organization_name: model.organization_name,
+          nocobase_id,
+          host_url,
+          webhook_url,
+          remote_origin,
+          repo_name,
+          token: encryptedToken,
+          organization_name,
         },
       });
     } catch (error) {
-      throw new Error(StaticMessage.RepoSaveFailed);
+      throw error;
     }
   }
 }

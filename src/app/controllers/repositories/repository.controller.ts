@@ -62,6 +62,8 @@ export class RepositoryController {
 
   async SaveRepositoryDetails(body: SaveRepositoryDetails, repoToken: string) {
     try {
+      const { host_url } = body;
+
       await this.repositoryVerificationValidator.SaveRepositoryDetails(body);
 
       await this.repositoryService.fetchRepoDetailsByName(
@@ -70,11 +72,30 @@ export class RepositoryController {
       );
 
       const webhookUuid = uuidv4();
-      const webhookUrl = `${webhookUuid}/eztest`;
+      const webhookUrl = `${webhookUuid}`;
+
+      let baseUrl;
+      switch (body.remote_origin.toLowerCase()) {
+        case "github":
+          baseUrl = host_url ?? process.env.GITHUB_API_BASE_URL;
+          break;
+        case "gitlab":
+          baseUrl = host_url ?? process.env.GITLAB_API_BASE_URL;
+          break;
+        case "bitbucket":
+          baseUrl = host_url ?? process.env.BITBUCKET_API_BASE_URL;
+          break;
+        case "gitea":
+          baseUrl = host_url ?? process.env.GITEA_API_BASE_URL;
+          break;
+        default:
+          throw { statusCode: 400, message: "Unsupported remote origin" };
+      }
 
       const updatedBody = {
         ...body,
         token: repoToken,
+        host_url: baseUrl,
         webhook_url: webhookUrl,
       };
 
@@ -82,7 +103,7 @@ export class RepositoryController {
 
       return {
         message: StaticMessage.RepoDetailsSavedSuccessfully,
-        data: { webhook_url: webhookUrl },
+        data: { webhook_url: `${webhookUrl}/api/github-webhook` },
       };
     } catch (error: any) {
       throw error;

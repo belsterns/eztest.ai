@@ -12,6 +12,8 @@
     "@prisma/client": "^5.18.0",
     "axios": "^1.7.9",
     "body-parser": "^1.20.3",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.4.7",
     "next": "15.1.6",
     "octokit": "^4.1.0",
     "react": "^19.0.0",
