@@ -2,7 +2,10 @@ import { RepositoryService } from "@/app/services/repositories/repository.servic
 import { RepositoryVerificationValidator } from "@/app/validator/RepositoryVerificationValidator";
 import { StaticMessage } from "@/app/constants/StaticMessages";
 import { SaveRepositoryDetails } from "@/app/infrastructure/dtos/SaveRepositoryDetails";
+import { DeleteRepositoryDetails } from "@/app/infrastructure/dtos/DeleteRepositoryDetails";
 import { v4 as uuidv4 } from "uuid";
+import { parseRepoUrl } from "@/app/utils/parseUrl";
+import { fetchBaseUrl } from "@/app/utils/fetchBaseUrl";
 
 export class RepositoryController {
   private repositoryService: RepositoryService;
@@ -18,37 +21,18 @@ export class RepositoryController {
     try {
       await this.repositoryVerificationValidator.ValidateRepository(body);
 
-      const {
-        host_url,
-        remote_origin: remoteOrigin,
-        organization_name: orgName,
-        repo_name: repoName,
-      } = body;
+      const { host_url, repo_url } = body;
 
-      let baseUrl;
-      switch (remoteOrigin.toLowerCase()) {
-        case "github":
-          baseUrl = host_url ?? process.env.GITHUB_API_BASE_URL;
-          break;
-        case "gitlab":
-          baseUrl = host_url ?? process.env.GITLAB_API_BASE_URL;
-          break;
-        case "bitbucket":
-          baseUrl = host_url ?? process.env.BITBUCKET_API_BASE_URL;
-          break;
-        case "gitea":
-          baseUrl = host_url ?? process.env.GITEA_API_BASE_URL;
-          break;
-        default:
-          throw { statusCode: 400, message: "Unsupported remote origin" };
-      }
+      const { hostName, orgName, repoName } = parseRepoUrl(repo_url);
 
-      const strategy = this.repositoryService.getStrategy(remoteOrigin);
+      const baseUrl = fetchBaseUrl(hostName, host_url);
+
+      const strategy = this.repositoryService.getStrategy(hostName);
       const response = await strategy.findRepositoryDetails(
         baseUrl,
         orgName,
         repoName,
-        repoToken
+        repoToken,
       );
 
       return {
@@ -60,51 +44,113 @@ export class RepositoryController {
     }
   }
 
-  async SaveRepositoryDetails(body: SaveRepositoryDetails, repoToken: string) {
+  async saveRepositoryDetails(body: SaveRepositoryDetails, repoToken: string) {
     try {
-      const { host_url } = body;
+      const { host_url, repo_url } = body;
+
+      const {
+        hostName,
+        orgName: organization_name,
+        repoName: repo_name,
+      } = parseRepoUrl(repo_url);
 
       await this.repositoryVerificationValidator.SaveRepositoryDetails(body);
 
       await this.repositoryService.fetchRepoDetailsByName(
-        body.organization_name,
-        body.repo_name
+        organization_name,
+        repo_name,
       );
 
-      const webhookUuid = uuidv4();
-      const webhookUrl = `${webhookUuid}`;
+      const baseUrl = fetchBaseUrl(hostName, host_url);
 
-      let baseUrl;
-      switch (body.remote_origin.toLowerCase()) {
-        case "github":
-          baseUrl = host_url ?? process.env.GITHUB_API_BASE_URL;
-          break;
-        case "gitlab":
-          baseUrl = host_url ?? process.env.GITLAB_API_BASE_URL;
-          break;
-        case "bitbucket":
-          baseUrl = host_url ?? process.env.BITBUCKET_API_BASE_URL;
-          break;
-        case "gitea":
-          baseUrl = host_url ?? process.env.GITEA_API_BASE_URL;
-          break;
-        default:
-          throw { statusCode: 400, message: "Unsupported remote origin" };
-      }
+      const webhookUuid = uuidv4();
 
       const updatedBody = {
-        ...body,
-        token: repoToken,
+        nocobase_id: body.nocobase_id,
         host_url: baseUrl,
-        webhook_url: webhookUrl,
+        webhook_uuid: webhookUuid,
+        remote_origin: hostName,
+        repo_name,
+        organization_name,
+        token: repoToken,
       };
 
-      await this.repositoryService.saveRepositoryDetails(updatedBody);
+      const repository =
+        await this.repositoryService.saveRepositoryDetails(updatedBody);
 
       return {
         message: StaticMessage.RepoDetailsSavedSuccessfully,
-        data: { webhook_url: `${webhookUrl}/api/github-webhook` },
+        data: {
+          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/webhook/${repository.webhook_uuid}`,
+        },
       };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async updateRepositoryDetails(
+    body: SaveRepositoryDetails,
+    repoToken: string,
+  ) {
+    try {
+      const { host_url, nocobase_id, repo_url } = body;
+
+      await this.repositoryService.fetchRepoDetailsByNocoBaseId(
+        String(nocobase_id),
+      );
+
+      const {
+        hostName,
+        orgName: organization_name,
+        repoName: repo_name,
+      } = parseRepoUrl(repo_url);
+
+      await this.repositoryVerificationValidator.SaveRepositoryDetails(body);
+
+      await this.repositoryService.fetchRepoDetailsByName(
+        organization_name,
+        repo_name,
+      );
+
+      const baseUrl = fetchBaseUrl(hostName, host_url);
+
+      const webhookUuid = uuidv4();
+
+      const updatedBody = {
+        nocobase_id: nocobase_id,
+        host_url: baseUrl,
+        webhook_uuid: webhookUuid,
+        remote_origin: hostName,
+        repo_name,
+        organization_name,
+        token: repoToken,
+      };
+
+      const repository = await this.repositoryService.updateRepositoryDetails(
+        String(nocobase_id),
+        updatedBody,
+      );
+
+      return {
+        message: StaticMessage.RepoDetailsUpdatedSuccessfully,
+        data: {
+          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/webhook/${repository.webhook_uuid}`,
+        },
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async deleteRepository(body: DeleteRepositoryDetails) {
+    try {
+      const nocoBaseId = String(body.nocobase_id);
+
+      const repository =
+        await this.repositoryService.fetchRepoDetailsByNocoBaseId(nocoBaseId);
+
+      return await this.repositoryService.deleteRepository(repository.uuid);
     } catch (error: any) {
       throw error;
     }

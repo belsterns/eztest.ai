@@ -10,14 +10,15 @@ datasource db {
 model repositories {
   id                Int      @id @default(autoincrement())
   uuid              String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nocobase_id       String
+  nocobase_id       String   @unique
   host_url          String
-  webhook_url       String   @unique
+  webhook_uuid      String   @unique
   remote_origin     String
   organization_name String
   repo_name         String
   token             String
   is_active         Boolean  @default(true)
-  created_at         DateTime @default(now())
-  updated_at         DateTime @default(now()) @updatedAt
+  is_initialized    Boolean  @default(false)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @default(now()) @updatedAt
 }

@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "format:fix": "prettier --write ."
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
@@ -16,6 +17,7 @@
     "dotenv": "^16.4.7",
     "next": "15.1.6",
     "octokit": "^4.1.0",
+    "prettier": "^3.5.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "uuid": "^11.0.5",

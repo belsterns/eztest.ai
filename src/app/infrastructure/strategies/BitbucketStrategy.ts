@@ -6,7 +6,7 @@ export class BitbucketStrategy implements IRepoStrategy {
     baseUrl: string,
     workspace: string,
     repoName: string,
-    repoToken: string
+    repoToken: string,
   ) {
     const url = `${baseUrl}/repositories/${workspace}/${repoName}`;
     const headers = { Authorization: `Bearer ${repoToken}` };

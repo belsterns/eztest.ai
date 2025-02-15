@@ -5,7 +5,7 @@ import { BitbucketStrategy } from "@/app/infrastructure/strategies/BitbucketStra
 import { GiteaStrategy } from "@/app/infrastructure/strategies/GiteaStrategy";
 import prisma from "@/lib/prisma";
 import { StaticMessage } from "@/app/constants/StaticMessages";
-import { decryptToken, encryptToken } from "@/app/utils/cryptoUtils";
+import { encryptToken } from "@/app/utils/cryptoUtils";
 
 export class RepositoryService {
   private strategyMap: Map<string, IRepoStrategy>;
@@ -48,6 +48,28 @@ export class RepositoryService {
     }
   }
 
+  async fetchRepoDetailsByNocoBaseId(nocobaseId: string) {
+    try {
+      const existingRepo = await prisma.repositories.findUnique({
+        where: {
+          nocobase_id: String(nocobaseId),
+        },
+      });
+
+      if (!existingRepo) {
+        throw {
+          statusCode: 404,
+          message: StaticMessage.RepositoryNotFound,
+          data: null,
+        };
+      }
+
+      return existingRepo;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
   async saveRepositoryDetails(model: any) {
     try {
       const {
@@ -57,19 +79,62 @@ export class RepositoryService {
         remote_origin,
         repo_name,
         token,
-        webhook_url,
+        webhook_uuid,
       } = model;
       const encryptedToken = encryptToken(token);
 
       return await prisma.repositories.create({
         data: {
-          nocobase_id,
+          nocobase_id: String(nocobase_id),
           host_url,
-          webhook_url,
+          webhook_uuid,
           remote_origin,
           repo_name,
           token: encryptedToken,
           organization_name,
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateRepositoryDetails(nocobaseId: string, model: any) {
+    try {
+      const {
+        host_url,
+        organization_name,
+        remote_origin,
+        repo_name,
+        token,
+        webhook_uuid,
+      } = model;
+      const encryptedToken = encryptToken(token);
+
+      return await prisma.repositories.update({
+        data: {
+          host_url,
+          webhook_uuid,
+          remote_origin,
+          repo_name,
+          token: encryptedToken,
+          organization_name,
+          updated_at: new Date(),
+        },
+        where: { nocobase_id: nocobaseId },
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async deleteRepository(repoUuid: string) {
+    try {
+      // Check if the repository exists
+
+      return await prisma.repositories.delete({
+        where: {
+          uuid: repoUuid,
         },
       });
     } catch (error) {

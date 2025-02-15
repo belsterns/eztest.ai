@@ -7,4 +7,7 @@ export class StaticMessage {
     "Repository details have been successfully saved.";
   static RepoSaveFailed =
     "Failed to save repository details. Please try again.";
+  static RepositoryNotFound = "Repository not found";
+  static RepoDetailsUpdatedSuccessfully =
+    "Repository details have been updated saved.";
 }

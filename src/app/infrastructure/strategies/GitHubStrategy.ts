@@ -6,7 +6,7 @@ export class GitHubStrategy implements IRepoStrategy {
     baseUrl: string,
     organizationName: string,
     repoName: string,
-    repoToken: string
+    repoToken: string,
   ) {
     const url = `${baseUrl}/repos/${organizationName}/${repoName}`;
     const headers = {

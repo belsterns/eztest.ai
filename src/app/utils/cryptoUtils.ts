@@ -10,7 +10,7 @@ export function encryptToken(token: string): string {
   const cipher = crypto.createCipheriv(
     "aes-256-cbc",
     Buffer.from(SECRET_KEY, "hex"),
-    iv
+    iv,
   );
   const encrypted = cipher.update(token, "utf8", "hex") + cipher.final("hex");
   return `${iv.toString("hex")}:${encrypted}`;
@@ -21,7 +21,7 @@ export function decryptToken(encryptedToken: string): string {
   const decipher = crypto.createDecipheriv(
     "aes-256-cbc",
     Buffer.from(SECRET_KEY, "hex"),
-    Buffer.from(ivHex, "hex")
+    Buffer.from(ivHex, "hex"),
   );
   return decipher.update(encryptedHex, "hex", "utf8") + decipher.final("utf8");
 }

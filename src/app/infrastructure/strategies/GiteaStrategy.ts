@@ -6,7 +6,7 @@ export class GiteaStrategy implements IRepoStrategy {
     baseUrl: string,
     owner: string,
     repoName: string,
-    repoToken: string
+    repoToken: string,
   ) {
     const url = `${baseUrl}/repos/${owner}/${repoName}`;
     const headers = { Authorization: `token ${repoToken}` };

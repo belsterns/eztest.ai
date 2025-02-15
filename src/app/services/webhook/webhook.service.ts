@@ -1,30 +1,49 @@
 import axios from "axios";
-
-const GITHUB_API_BASE_URL = process.env.GITHUB_API_BASE_URL;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // GitHub token
+import prisma from "@/lib/prisma";
+import { decryptToken } from "@/app/utils/cryptoUtils";
+import { StaticMessage } from "@/app/constants/StaticMessages";
 
 export class WebhookService {
+  async findRepositoryByWebhookUuid(webhookUuid: string) {
+    const repository = await prisma.repositories.findUnique({
+      where: {
+        webhook_uuid: webhookUuid,
+      },
+    });
+
+    if (!repository) {
+      throw {
+        statusCode: 404,
+        message: StaticMessage.RepositoryNotFound,
+        data: null,
+      };
+    }
+    return repository;
+  }
+
   async createPullRequest(
     repoFullName: string,
     baseBranch: string,
     newBranch: string,
     title: string,
-    body: string
+    body: string,
+    apiBaseUrl: string,
+    repoToken: string,
   ) {
     try {
       const response = await axios.post(
-        `${GITHUB_API_BASE_URL}/repos/${repoFullName}/pulls`,
+        `${apiBaseUrl}/repos/${repoFullName}/pulls`,
         { title, head: newBranch, base: baseBranch, body },
         {
           headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
+            Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
-        }
+        },
       );
 
       console.log(
-        `Pull Request created successfully: ${response.data.html_url}`
+        `Pull Request created successfully: ${response.data.html_url}`,
       );
     } catch (error: any) {
       console.error("Error creating Pull Request:", error.message);
@@ -35,24 +54,26 @@ export class WebhookService {
   async fetchFileContent(
     repoFullName: string,
     branchName: string,
-    filePath: string
+    filePath: string,
+    apiBaseUrl: string,
+    repoToken: string,
   ) {
     try {
       const response = await axios.get(
-        `${GITHUB_API_BASE_URL}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`,
+        `${apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`,
         {
           headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
+            Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
-        }
+        },
       );
 
       return response.data.content;
     } catch (error: any) {
       console.error(
         `Error fetching content for file '${filePath}':`,
-        error.message
+        error.message,
       );
       return null;
     }
@@ -61,7 +82,9 @@ export class WebhookService {
   async fetchModifiedFileContents(
     repoFullName: string,
     branchName: string,
-    changedFiles: any
+    changedFiles: any,
+    apiBaseUrl: string,
+    repoToken: string,
   ) {
     const files = [];
 
@@ -70,7 +93,9 @@ export class WebhookService {
         const content = await this.fetchFileContent(
           repoFullName,
           branchName,
-          file.filename
+          file.filename,
+          apiBaseUrl,
+          repoToken,
         );
 
         files.push({
@@ -90,11 +115,13 @@ export class WebhookService {
     path: string,
     content: string,
     message: string,
-    newBranch: string
+    newBranch: string,
+    apiBaseUrl: string,
+    repoToken: string,
   ) {
     try {
       await axios.put(
-        `${GITHUB_API_BASE_URL}/repos/${repoFullName}/contents/${path}`,
+        `${apiBaseUrl}/repos/${repoFullName}/contents/${path}`,
         {
           message,
           branch: newBranch,
@@ -106,44 +133,61 @@ export class WebhookService {
         },
         {
           headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
+            Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
-        }
+        },
       );
       console.log(`File '${path}' created or updated successfully.`);
     } catch (error: any) {
       console.error(
         `Error creating or updating file '${path}':`,
-        error.message
+        error.message,
       );
       throw error;
     }
   }
 
-  async processWebhook(repoFullName: string, baseBranch: string) {
+  async processWebhook(
+    repoFullName: string,
+    baseBranch: string,
+    webhookUuid: string,
+  ) {
     const suffix = "_unitTest";
     const newBranch = `${baseBranch}${suffix}`;
 
+    const repository = await this.findRepositoryByWebhookUuid(webhookUuid);
+    const apiBaseUrl = repository.host_url;
+    const repoToken = decryptToken(repository.token);
+
+    if (baseBranch.endsWith("__fullTest")) {
+      console.log(
+        `Branch '${baseBranch}' ends with '__fullTest'. Skipping branch creation.`,
+      );
+      return {
+        message: `Branch '${baseBranch}' is a full test branch. No further action is taken.`,
+      };
+    }
+
     const branchResponse = await axios.get(
-      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
+      `${apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
       {
         headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
+          Authorization: `token ${repoToken}`,
           Accept: "application/vnd.github.v3+json",
         },
-      }
+      },
     );
 
     const latestCommitSHA = branchResponse.data.object.sha;
     const commitResponse = await axios.get(
-      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/git/commits/${latestCommitSHA}`,
+      `${apiBaseUrl}/repos/${repoFullName}/git/commits/${latestCommitSHA}`,
       {
         headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
+          Authorization: `token ${repoToken}`,
           Accept: "application/vnd.github.v3+json",
         },
-      }
+      },
     );
 
     const parentCommitSHA = commitResponse.data.parents?.[0]?.sha;
@@ -152,13 +196,13 @@ export class WebhookService {
       throw new Error("No parent commit found for the latest commit.");
 
     const compareResponse = await axios.get(
-      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/compare/${parentCommitSHA}...${latestCommitSHA}`,
+      `${apiBaseUrl}/repos/${repoFullName}/compare/${parentCommitSHA}...${latestCommitSHA}`,
       {
         headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
+          Authorization: `token ${repoToken}`,
           Accept: "application/vnd.github.v3+json",
         },
-      }
+      },
     );
 
     const changedFiles = compareResponse.data.files.map((file: any) => ({
@@ -170,14 +214,14 @@ export class WebhookService {
     console.log("Changed Files:", changedFiles);
 
     await axios.post(
-      `${GITHUB_API_BASE_URL}/repos/${repoFullName}/git/refs`,
+      `${apiBaseUrl}/repos/${repoFullName}/git/refs`,
       { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
       {
         headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
+          Authorization: `token ${repoToken}`,
           Accept: "application/vnd.github.v3+json",
         },
-      }
+      },
     );
 
     console.log(`Branch '${newBranch}' created successfully.`);
@@ -185,7 +229,9 @@ export class WebhookService {
     const repoFiles = await this.fetchModifiedFileContents(
       repoFullName,
       newBranch,
-      changedFiles
+      changedFiles,
+      apiBaseUrl,
+      repoToken,
     );
 
     const langflowResponse = await axios.post(
@@ -211,11 +257,11 @@ export class WebhookService {
           Authorization: `Bearer YOUR_API_KEY`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     const langFlowData = JSON.parse(
-      langflowResponse.data.outputs[0].outputs[0].results.text.data.text
+      langflowResponse.data.outputs[0].outputs[0].results.text.data.text,
     );
     for (const file of langFlowData.value) {
       await this.createOrUpdateFile(
@@ -223,7 +269,9 @@ export class WebhookService {
         file.name,
         file.content,
         `Adding test file: ${file.name}`,
-        newBranch
+        newBranch,
+        apiBaseUrl,
+        repoToken,
       );
     }
 
@@ -235,7 +283,9 @@ export class WebhookService {
       baseBranch,
       newBranch,
       title,
-      body
+      body,
+      apiBaseUrl,
+      repoToken,
     );
 
     return {

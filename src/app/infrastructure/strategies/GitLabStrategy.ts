@@ -6,7 +6,7 @@ export class GitLabStrategy implements IRepoStrategy {
     baseUrl: string,
     _organizationName: string,
     repoName: string,
-    repoToken: string
+    repoToken: string,
   ) {
     const url = baseUrl ?? process.env.GITLAB_API_BASE_URL;
 
@@ -16,7 +16,7 @@ export class GitLabStrategy implements IRepoStrategy {
         headers: {
           Authorization: `Bearer ${repoToken}`,
         },
-      }
+      },
     );
 
     if (searchResponse.data.length === 0) {
