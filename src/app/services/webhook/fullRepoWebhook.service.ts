@@ -2,20 +2,20 @@ import axios from "axios";
 import prisma from "@/lib/prisma";
 
 const GITHUB_API_BASE_URL = process.env.GITHUB_API_BASE_URL;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
 export class FullRepoWebhookService {
   async fetchFileContent(
     repoFullName: string,
     filePath: string,
     branchName: string,
+    repoToken: string
   ) {
     try {
       const response = await axios.get(
         `${GITHUB_API_BASE_URL}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`,
         {
           headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
+            Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
         },
@@ -30,13 +30,13 @@ export class FullRepoWebhookService {
     }
   }
 
-  async fetchAllFiles(repoFullName: string, branchName: string) {
+  async fetchAllFiles(repoFullName: string, branchName: string, repoToken: string) {
     try {
       const response = await axios.get(
         `${GITHUB_API_BASE_URL}/repos/${repoFullName}/git/trees/${branchName}?recursive=1`,
         {
           headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
+            Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
         },
@@ -51,6 +51,7 @@ export class FullRepoWebhookService {
             repoFullName,
             file.path,
             branchName,
+            repoToken
           );
           return {
             path: file.path,
@@ -69,15 +70,13 @@ export class FullRepoWebhookService {
     repoFullName: string,
     baseBranch: string,
     nocobaseId: string,
+    repoToken: string
   ) {
     const isInitialized = await prisma.repositories.findUnique({
-      where: { nocobase_id: nocobaseId },
-      select: {
-        is_initialized: true,
-      },
+      where: { nocobase_id: nocobaseId , is_initialized: true},
     });
 
-    if (!isInitialized) {
+    if (isInitialized) {
       throw {
         statusCode: 404,
         message:
@@ -94,7 +93,7 @@ export class FullRepoWebhookService {
       `${GITHUB_API_BASE_URL}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
       {
         headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
+          Authorization: `token ${repoToken}`,
           Accept: "application/vnd.github.v3+json",
         },
       },
@@ -108,7 +107,7 @@ export class FullRepoWebhookService {
       { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
       {
         headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
+          Authorization: `token ${repoToken}`,
           Accept: "application/vnd.github.v3+json",
         },
       },
@@ -117,7 +116,7 @@ export class FullRepoWebhookService {
     console.log(`Branch '${newBranch}' created successfully.`);
 
     // Fetch all files in the repository
-    const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
+    const allFiles = await this.fetchAllFiles(repoFullName, baseBranch, repoToken);
 
     //Langflow implementation
 
@@ -138,6 +137,7 @@ export class FullRepoWebhookService {
     content: string,
     message: string,
     newBranch: string,
+    repoToken: string
   ) {
     try {
       await axios.put(
@@ -153,7 +153,7 @@ export class FullRepoWebhookService {
         },
         {
           headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
+            Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
         },
@@ -174,6 +174,7 @@ export class FullRepoWebhookService {
     newBranch: string,
     title: string,
     body: string,
+    repoToken: string
   ) {
     try {
       const response = await axios.post(
@@ -181,7 +182,7 @@ export class FullRepoWebhookService {
         { title, head: newBranch, base: baseBranch, body },
         {
           headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
+            Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
         },

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FullRepoWebhookService } from "@/app/services/webhook/fullRepoWebhook.service";
+import { parseRepoUrl } from "@/app/utils/parseUrl";
+import { StaticMessage } from "@/app/constants/StaticMessages";
 
 export class FullRepoWebhookController {
   private fullRepoService: FullRepoWebhookService;
@@ -10,9 +12,26 @@ export class FullRepoWebhookController {
 
   async handleFullRepoTestInitialization(req: NextRequest, context: any) {
     try {
+      const headers = req.headers;
+      const repoToken = headers.get("x-origin-token");
+
+      if (!repoToken) {
+        return NextResponse.json(
+          { message: StaticMessage.InvalidGitHubToken },
+          { status: 401 },
+        );
+      }
+
       const payload = await req.json();
-      const nocobaseId = context.params.nocobase_id;
-      const repoFullName = payload.repoFullName;
+      const { repo_url } = payload;
+      const {
+        hostName,
+        orgName: organization_name,
+        repoName: repo_name,
+      } = parseRepoUrl(repo_url);
+
+      const nocobaseId = await context.params.nocobase_id;
+      const repoFullName =  `${organization_name}/${repo_name}`;
       const baseBranch = payload.baseBranch || "main";
 
       if (!repoFullName) {
@@ -26,6 +45,7 @@ export class FullRepoWebhookController {
         repoFullName,
         baseBranch,
         nocobaseId,
+        repoToken
       );
 
       return NextResponse.json(response, { status: 201 });
