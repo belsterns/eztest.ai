@@ -1,6 +1,6 @@
 export function fetchBaseUrl(
   hostName: string,
-  host_url?: string | null
+  host_url?: string | null,
 ): string {
   const baseUrls: Record<string, string | undefined> = {
     github: process.env.GITHUB_API_BASE_URL,

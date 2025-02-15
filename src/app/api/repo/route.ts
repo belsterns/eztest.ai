@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       repoToken,
     );
 
-    return NextResponse.json(response.data, { status: 200 });
+    return NextResponse.json(response.data.webhook_url, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
       { message: error.message, data: error.data || null },

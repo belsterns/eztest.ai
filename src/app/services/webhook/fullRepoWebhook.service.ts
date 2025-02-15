@@ -8,7 +8,7 @@ export class FullRepoWebhookService {
     repoFullName: string,
     filePath: string,
     branchName: string,
-    repoToken: string
+    repoToken: string,
   ) {
     try {
       const response = await axios.get(
@@ -30,7 +30,11 @@ export class FullRepoWebhookService {
     }
   }
 
-  async fetchAllFiles(repoFullName: string, branchName: string, repoToken: string) {
+  async fetchAllFiles(
+    repoFullName: string,
+    branchName: string,
+    repoToken: string,
+  ) {
     try {
       const response = await axios.get(
         `${GITHUB_API_BASE_URL}/repos/${repoFullName}/git/trees/${branchName}?recursive=1`,
@@ -51,7 +55,7 @@ export class FullRepoWebhookService {
             repoFullName,
             file.path,
             branchName,
-            repoToken
+            repoToken,
           );
           return {
             path: file.path,
@@ -70,10 +74,10 @@ export class FullRepoWebhookService {
     repoFullName: string,
     baseBranch: string,
     nocobaseId: string,
-    repoToken: string
+    repoToken: string,
   ) {
     const isInitialized = await prisma.repositories.findUnique({
-      where: { nocobase_id: nocobaseId , is_initialized: true},
+      where: { nocobase_id: nocobaseId, is_initialized: true },
     });
 
     if (isInitialized) {
@@ -116,7 +120,11 @@ export class FullRepoWebhookService {
     console.log(`Branch '${newBranch}' created successfully.`);
 
     // Fetch all files in the repository
-    const allFiles = await this.fetchAllFiles(repoFullName, baseBranch, repoToken);
+    const allFiles = await this.fetchAllFiles(
+      repoFullName,
+      baseBranch,
+      repoToken,
+    );
 
     //Langflow implementation
 
@@ -137,7 +145,7 @@ export class FullRepoWebhookService {
     content: string,
     message: string,
     newBranch: string,
-    repoToken: string
+    repoToken: string,
   ) {
     try {
       await axios.put(
@@ -174,7 +182,7 @@ export class FullRepoWebhookService {
     newBranch: string,
     title: string,
     body: string,
-    repoToken: string
+    repoToken: string,
   ) {
     try {
       const response = await axios.post(

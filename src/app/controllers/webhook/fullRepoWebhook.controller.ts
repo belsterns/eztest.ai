@@ -31,7 +31,7 @@ export class FullRepoWebhookController {
       } = parseRepoUrl(repo_url);
 
       const nocobaseId = await context.params.nocobase_id;
-      const repoFullName =  `${organization_name}/${repo_name}`;
+      const repoFullName = `${organization_name}/${repo_name}`;
       const baseBranch = payload.baseBranch || "main";
 
       if (!repoFullName) {
@@ -45,7 +45,7 @@ export class FullRepoWebhookController {
         repoFullName,
         baseBranch,
         nocobaseId,
-        repoToken
+        repoToken,
       );
 
       return NextResponse.json(response, { status: 201 });
