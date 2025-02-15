@@ -30,7 +30,7 @@ export class FullRepoWebhookController {
         repoName: repo_name,
       } = parseRepoUrl(repo_url);
 
-      const nocobaseId = await context.params.nocobase_id;
+      const { nocobase_id:nocobaseId } = await context.params;
       const repoFullName = `${organization_name}/${repo_name}`;
       const baseBranch = payload.baseBranch || "main";
 
