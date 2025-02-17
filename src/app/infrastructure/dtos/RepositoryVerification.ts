@@ -3,4 +3,5 @@ export type RepositoryVerification = {
   remote_origin: string;
   organization_name: string;
   repo_name: string;
+  repo_url: string;
 };

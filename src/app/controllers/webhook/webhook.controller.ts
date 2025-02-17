@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { WebhookService } from "@/app/services/webhook/webhook.service";
 
 export class WebhookController {

@@ -25,7 +25,6 @@ export class FullRepoWebhookController {
       const payload = await req.json();
       const { repo_url } = payload;
       const {
-        hostName,
         orgName: organization_name,
         repoName: repo_name,
       } = parseRepoUrl(repo_url);

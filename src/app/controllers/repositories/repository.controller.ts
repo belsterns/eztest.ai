@@ -6,6 +6,7 @@ import { DeleteRepositoryDetails } from "@/app/infrastructure/dtos/DeleteReposit
 import { v4 as uuidv4 } from "uuid";
 import { parseRepoUrl } from "@/app/utils/parseUrl";
 import { fetchBaseUrl } from "@/app/utils/fetchBaseUrl";
+import { RepositoryVerification } from "../../infrastructure/dtos/RepositoryVerification";
 
 export class RepositoryController {
   private repositoryService: RepositoryService;
@@ -17,7 +18,7 @@ export class RepositoryController {
       new RepositoryVerificationValidator();
   }
 
-  async findRepositoryDetails(body: any, repoToken: string) {
+  async findRepositoryDetails(body: RepositoryVerification, repoToken: string) {
     try {
       await this.repositoryVerificationValidator.ValidateRepository(body);
 
