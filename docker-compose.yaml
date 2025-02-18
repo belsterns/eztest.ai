@@ -1,0 +1,53 @@
+services:
+  database:
+    image: postgres:latest
+    container_name: ${CONTAINER_NAME_POSTGRES}
+    restart: always
+    env_file: ./.env
+    environment:
+      POSTGRES_USER: ${DB_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: "2G"
+    volumes:
+      - ./data/postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # Exposes the database's port on the host
+    networks:
+      - app_ezt
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_POSTGRES_USER} -d ${DB_DATABASE_NAME}",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      database:
+        condition: service_healthy
+    container_name: ${CONTAINER_NAME_NEXTJS}
+    ports:
+      - "${PORT_NEXTJS}:3000"
+    env_file: ./.env
+    environment:
+      NEXT_BASE_URL: ${DOMAIN_BASE_URL}
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+    restart: unless-stopped
+    networks:
+      - app_ezt
+
+networks:
+  app_ezt:
+    driver: bridge
