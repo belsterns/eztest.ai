@@ -8,17 +8,10 @@ services:
       POSTGRES_USER: ${DB_POSTGRES_USER}
       POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE_NAME}
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: "2G"
     volumes:
       - ./data/postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432" # Exposes the database's port on the host
     networks:
-      - app_ezt
+      - ezt
     healthcheck:
       test:
         [
@@ -36,9 +29,9 @@ services:
     depends_on:
       database:
         condition: service_healthy
-    container_name: ${CONTAINER_NAME_NEXTJS}
+    container_name: ${CONTAINER_NAME_APP}
     ports:
-      - "${PORT_NEXTJS}:3000"
+      - "${PORT_APP}:3000"
     env_file: ./.env
     environment:
       NEXT_BASE_URL: ${DOMAIN_BASE_URL}
@@ -46,8 +39,8 @@ services:
       SECRET_KEY: ${SECRET_KEY}
     restart: unless-stopped
     networks:
-      - app_ezt
+      - ezt
 
 networks:
-  app_ezt:
+  ezt:
     driver: bridge

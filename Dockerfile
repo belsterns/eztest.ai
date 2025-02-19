@@ -2,10 +2,10 @@ FROM node:18-alpine AS base
 
 # 1. Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+
 RUN apk add --no-cache libc6-compat
 
-WORKDIR /unittesting-aiagent
+WORKDIR /app
 
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 
@@ -18,11 +18,9 @@ RUN \
 
 # 2. Rebuild the source code only when needed
 FROM base AS builder
-WORKDIR /unittesting-aiagent
-COPY --from=deps /unittesting-aiagent/node_modules ./node_modules
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# # This will do the trick, use the corresponding env file for each environment.
-# COPY .env .env
 
 RUN apk add --no-cache --virtual .build-deps \
   openssl
@@ -38,7 +36,7 @@ RUN npm run build
 
 # 3. Production image, copy all the files and run next
 FROM base AS runner
-WORKDIR /unittesting-aiagent
+WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
 
@@ -49,12 +47,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
 
-COPY --from=builder /unittesting-aiagent/public ./public
+COPY --from=builder /app/public ./public
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder /unittesting-aiagent/.next/static ./static
-COPY --from=builder /unittesting-aiagent/package.json ./package.json
+COPY --from=builder /app/.next/static ./static
+COPY --from=builder /app/package.json ./package.json
 
 USER nextjs
 
@@ -62,4 +58,4 @@ EXPOSE 3000
 
 ENV PORT=3000
 
-CMD HOSTNAME="0.0.0.0" npm run start
+CMD HOSTNAME="0.0.0.0" node server.js
