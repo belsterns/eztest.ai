@@ -1,7 +1,7 @@
 import axios from "axios";
 import prisma from "@/lib/prisma";
-import { decryptToken } from "@/app/utils/cryptoUtils";
-import { StaticMessage } from "@/app/constants/StaticMessages";
+import { decryptToken } from "@/app/backend/utils/cryptoUtils";
+import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 
 export class WebhookService {
   async findRepositoryByWebhookUuid(webhookUuid: string) {
@@ -235,7 +235,7 @@ export class WebhookService {
     );
 
     const langflowResponse = await axios.post(
-      "https://llmops.ezxplore.com/api/v1/run/42811f5a-1d78-43ba-8641-b01282f9a28e?stream=false",
+      `https://${process.env.LANG_FLOW_BASE_URL}/run/42811f5a-1d78-43ba-8641-b01282f9a28e?stream=false`,
       {
         output_type: "text",
         input_type: "text",
@@ -257,7 +257,7 @@ export class WebhookService {
           Authorization: `Bearer YOUR_API_KEY`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     const langFlowData = JSON.parse(

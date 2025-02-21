@@ -1,11 +1,11 @@
-import { IRepoStrategy } from "@/app/infrastructure/strategies/IRepoStrategy";
-import { GitHubStrategy } from "@/app/infrastructure/strategies/GitHubStrategy";
-import { GitLabStrategy } from "@/app/infrastructure/strategies/GitLabStrategy";
-import { BitbucketStrategy } from "@/app/infrastructure/strategies/BitbucketStrategy";
-import { GiteaStrategy } from "@/app/infrastructure/strategies/GiteaStrategy";
+import { IRepoStrategy } from "@/app/backend/infrastructure/strategies/IRepoStrategy";
+import { GitHubStrategy } from "@/app/backend/infrastructure/strategies/GitHubStrategy";
+import { GitLabStrategy } from "@/app/backend/infrastructure/strategies/GitLabStrategy";
+import { BitbucketStrategy } from "@/app/backend/infrastructure/strategies/BitbucketStrategy";
+import { GiteaStrategy } from "@/app/backend/infrastructure/strategies/GiteaStrategy";
 import prisma from "@/lib/prisma";
-import { StaticMessage } from "@/app/constants/StaticMessages";
-import { encryptToken } from "@/app/utils/cryptoUtils";
+import { StaticMessage } from "@/app/backend/constants/StaticMessages";
+import { encryptToken } from "@/app/backend/utils/cryptoUtils";
 
 export class RepositoryService {
   private strategyMap: Map<string, IRepoStrategy>;

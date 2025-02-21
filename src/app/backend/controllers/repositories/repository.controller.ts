@@ -1,11 +1,11 @@
-import { RepositoryService } from "@/app/services/repositories/repository.service";
-import { RepositoryVerificationValidator } from "@/app/validator/RepositoryVerificationValidator";
-import { StaticMessage } from "@/app/constants/StaticMessages";
-import { SaveRepositoryDetails } from "@/app/infrastructure/dtos/SaveRepositoryDetails";
-import { DeleteRepositoryDetails } from "@/app/infrastructure/dtos/DeleteRepositoryDetails";
+import { RepositoryService } from "@/app/backend/services/repositories/repository.service";
+import { RepositoryVerificationValidator } from "@/app/backend/validator/RepositoryVerificationValidator";
+import { StaticMessage } from "@/app/backend/constants/StaticMessages";
+import { SaveRepositoryDetails } from "@/app/backend/infrastructure/dtos/SaveRepositoryDetails";
+import { DeleteRepositoryDetails } from "@/app/backend/infrastructure/dtos/DeleteRepositoryDetails";
 import { v4 as uuidv4 } from "uuid";
-import { parseRepoUrl } from "@/app/utils/parseUrl";
-import { fetchBaseUrl } from "@/app/utils/fetchBaseUrl";
+import { parseRepoUrl } from "@/app/backend/utils/parseUrl";
+import { fetchBaseUrl } from "@/app/backend/utils/fetchBaseUrl";
 import { RepositoryVerification } from "../../infrastructure/dtos/RepositoryVerification";
 
 export class RepositoryController {
@@ -28,12 +28,14 @@ export class RepositoryController {
 
       const baseUrl = fetchBaseUrl(hostName, host_url);
 
+      console.log("baseUrl ------------>>", baseUrl);
+
       const strategy = this.repositoryService.getStrategy(hostName);
       const response = await strategy.findRepositoryDetails(
         baseUrl,
         orgName,
         repoName,
-        repoToken,
+        repoToken
       );
 
       return {
@@ -59,7 +61,7 @@ export class RepositoryController {
 
       await this.repositoryService.fetchRepoDetailsByName(
         organization_name,
-        repo_name,
+        repo_name
       );
 
       const baseUrl = fetchBaseUrl(hostName, host_url);
@@ -92,13 +94,13 @@ export class RepositoryController {
 
   async updateRepositoryDetails(
     body: SaveRepositoryDetails,
-    repoToken: string,
+    repoToken: string
   ) {
     try {
       const { host_url, nocobase_id, repo_url } = body;
 
       await this.repositoryService.fetchRepoDetailsByNocoBaseId(
-        String(nocobase_id),
+        String(nocobase_id)
       );
 
       const {
@@ -111,7 +113,7 @@ export class RepositoryController {
 
       await this.repositoryService.fetchRepoDetailsByName(
         organization_name,
-        repo_name,
+        repo_name
       );
 
       const baseUrl = fetchBaseUrl(hostName, host_url);
@@ -130,7 +132,7 @@ export class RepositoryController {
 
       const repository = await this.repositoryService.updateRepositoryDetails(
         String(nocobase_id),
-        updatedBody,
+        updatedBody
       );
 
       return {
