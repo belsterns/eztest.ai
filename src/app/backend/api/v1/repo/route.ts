@@ -1,5 +1,5 @@
-import { StaticMessage } from "@/app/constants/StaticMessages";
-import { RepositoryController } from "@/app/controllers/repositories/repository.controller";
+import { StaticMessage } from "@/app/backend/constants/StaticMessages";
+import { RepositoryController } from "@/app/backend/controllers/repositories/repository.controller";
 import { NextRequest, NextResponse } from "next/server";
 
 const repositoryController = new RepositoryController();

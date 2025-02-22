@@ -1,6 +1,6 @@
-import { RepositoryController } from "@/app/controllers/repositories/repository.controller";
+import { RepositoryController } from "@/app/backend/controllers/repositories/repository.controller";
 import { NextRequest, NextResponse } from "next/server";
-import { StaticMessage } from "../../../constants/StaticMessages";
+import { StaticMessage } from "../../../../constants/StaticMessages";
 
 const repositoryController = new RepositoryController();
 
@@ -13,20 +13,20 @@ export async function POST(request: NextRequest) {
     if (!repoToken) {
       return NextResponse.json(
         { message: StaticMessage.InvalidGitHubToken },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
     const response = await repositoryController.findRepositoryDetails(
       body,
-      repoToken,
+      repoToken
     );
 
     return NextResponse.json(response, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
       { message: error.message, data: error.data || null },
-      { status: error.statusCode || 500 },
+      { status: error.statusCode || 500 }
     );
   }
 }

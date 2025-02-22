@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { WebhookController } from "@/app/controllers/webhook/webhook.controller";
+import { WebhookController } from "@/app/backend/controllers/webhook/webhook.controller";
 
 const webhookController = new WebhookController();
 
