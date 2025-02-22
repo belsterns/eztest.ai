@@ -28,8 +28,6 @@ export class RepositoryController {
 
       const baseUrl = fetchBaseUrl(hostName, host_url);
 
-      console.log("baseUrl ------------>>", baseUrl);
-
       const strategy = this.repositoryService.getStrategy(hostName);
       const response = await strategy.findRepositoryDetails(
         baseUrl,
