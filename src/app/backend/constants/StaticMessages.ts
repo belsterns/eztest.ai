@@ -14,11 +14,22 @@ export class StaticMessage {
     "An account with this email already exists. Please use a different email.";
   static UserEmailNotFound =
     "No account found with this email. Please enter a valid email address.";
-  static SuccessfullyRegister =
-    "You have successfully registered.";
+  static SuccessfullyRegister = "You have successfully registered.";
   static UserNotFound =
     "No matching user found. Please check your details and try again.";
   static InvalidPassword =
     "The password you entered is incorrect. Please try again.";
   static LoginSuccessfully = "You have successfully logged in. Welcome back!";
+  static RoleNotFound = "Role not found.";
+}
+
+export class OnboardingType {
+  static SignUp = "signup";
+  static Invite = "invite";
+}
+
+export class OrganizationRoles {
+  static SuperAdmin = "Super admin";
+  static WorkspaceAdmin = "Workspace admin";
+  static WorkspaceMember = "Workspace member";
 }

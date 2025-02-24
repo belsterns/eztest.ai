@@ -1,7 +1,5 @@
 import prisma from "@/lib/prisma";
-import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 import * as bcrypt from "bcrypt";
-import { randomUUID } from "crypto";
 
 export class AuthService {
   constructor() {}
@@ -18,18 +16,22 @@ export class AuthService {
     }
   }
 
-  async saveUserDetails(model: UserSignUpRequestDto) {
+  async saveUserDetails(
+    model: UserSignUpRequestDto,
+    roleUuid: string,
+    createdBy: string | null
+  ) {
     try {
       const { email, full_name, organization_name, password } = model;
 
       return await prisma.users.create({
         data: {
-          email: email,
+          email,
           full_name,
           organization_name,
           password: await bcrypt.hash(password, 10),
-          org_role_uuid: randomUUID(),
-          created_by: "",
+          org_role_uuid: roleUuid,
+          created_by: createdBy || null,
         },
       });
     } catch (error) {
