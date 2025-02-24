@@ -7,6 +7,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model users {
+  uuid              String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  full_name         String   @db.VarChar(255)
+  organization_name String   @db.VarChar(255)
+  email             String   @unique
+  password          String
+  org_role_uuid     String   @db.Uuid
+  created_by        String?
+  is_active         Boolean  @default(true)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @default(now()) @updatedAt
+
+  org_role org_roles @relation(fields: [org_role_uuid], references: [uuid], onDelete: Cascade)
+}
+
+model org_roles {
+  uuid        String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+
+  users users[]
+}
+
 model repositories {
   id                Int      @id @default(autoincrement())
   uuid              String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
