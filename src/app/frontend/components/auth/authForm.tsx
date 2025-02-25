@@ -7,32 +7,12 @@ import {
   FormControl,
   FormLabel,
   TextField,
-  Button,
   Link,
 } from "@mui/material";
-import MuiCard from "@mui/material/Card";
-import { styled } from "@mui/material/styles";
-import ForgotPassword from "./ForgotPassword";
+import ForgotPassword from "./forgotPassword";
+import Card from "../../elements/card/card";
+import Button from "../../elements/button/button";
 
-const Card = styled(MuiCard)(({ theme }) => ({
-  display: "flex",
-  flexDirection: "column",
-  alignSelf: "center",
-  width: "100%",
-  padding: theme.spacing(4),
-  gap: theme.spacing(2),
-  boxShadow:
-    "hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px",
-  [theme.breakpoints.up("sm")]: {
-    width: "450px",
-  },
-  ...theme.applyStyles("dark", {
-    boxShadow:
-      "hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px",
-  }),
-}));
-
-// Define the expected field structure
 interface Field {
   label: string;
   name: string;
@@ -40,7 +20,6 @@ interface Field {
   required?: boolean;
   validation?: (value: string) => string | null;
 }
-
 interface AuthFormProps {
   formType: "log-in" | "register";
   fields: Field[];
@@ -78,7 +57,7 @@ export default function AuthForm({ formType, fields, submitBtn }: AuthFormProps)
   
 
   return (
-    <Card variant="outlined">
+    <Card variant="outlined" >
       <Typography variant="h4" sx={{ textAlign: "center" }}>
         { isLogIn ? "Log In" : "Register"}
       </Typography>
@@ -87,6 +66,7 @@ export default function AuthForm({ formType, fields, submitBtn }: AuthFormProps)
         component="form"
         noValidate
         sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
+        onSubmit={handleSubmit}
       >
         {fields.map(({ label, name, type, required }) => (
           <FormControl key={name}>
@@ -118,7 +98,7 @@ export default function AuthForm({ formType, fields, submitBtn }: AuthFormProps)
         <ForgotPassword open={open} handleClose={() => setOpen(false)} />
 
         <Button type="submit" fullWidth variant="contained">
-          { isLogIn ? "Log In" : "Register"}
+          {isLogIn ? "Log In" : "Register"}
         </Button>
 
         <Typography sx={{ textAlign: "center" }}>

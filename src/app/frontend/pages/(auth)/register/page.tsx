@@ -3,57 +3,29 @@ import * as React from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
 import Stack from '@mui/material/Stack';
 import ColorModeSelect from '../../../services/themeprovidor/theme/ColorModeSelect';
-import Content from '../../../components/sign-in/Content';
-import AuthForm from '@/app/frontend/components/sign-in/AuthForm';
+import Content from '../../../components/auth/content';
+import AuthForm from '@/app/frontend/components/auth/authForm';
 import { Alert } from '@mui/material';
+import { useRouter } from 'next/router';
 
 export default function Register(props: { disableCustomTheme?: boolean }) {
 
     const handleRegisterSubmit = async (formData: Record<string, string>) => {
         try {
-          const response_register = await fetch(`${process.env.DOMAIN_BASE_URL}/register`, {
+          const response_register = await fetch(`${process.env.DOMAIN_BASE_URL}/api/${process.env.API_VERSION}/auth/sign-up?onboardingType=invite`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData),
-          });
-      
-          const data_register = await response_register.json();
-          if (!response_register.ok) throw new Error(data_register.message);
-      
-          <Alert severity="success" color="success">
-            data_register.message
-          </Alert>
-      
-          // Automatically log the user in after registration
-          const response_login = await fetch("https://your-api-url.com/auth/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
             body: JSON.stringify({
-                email: formData.email,
-                password: formData.password,
+              full_name: formData.fullName,
+              organization_name: formData.orgName,
+              email: formData.email,
+              password: formData.password,
             }),
           });
-
-           const data_login = await response_login.json();
-
-            if (!response_login.ok) {
-                throw new Error(data_login.message || "Login failed");
-            }
-
-            // Store user data in session storage
-            sessionStorage.setItem("user", JSON.stringify(data_login.user));
-
-            <Alert severity="success" color="success">
-                data.message
-            </Alert>
-
-            // Redirect user after successful login
-            window.location.href = "/home"; // Change this to your actual route
-            } catch (error: any) {
-            alert(error.message || "Registration failed");
-            }
+        
+          } catch (error: any) {
+            throw error;
+          }
       };
     
 
@@ -111,9 +83,9 @@ export default function Register(props: { disableCustomTheme?: boolean }) {
             <AuthForm
               formType="register"
               fields={[
+                { label: "Full Name", name: "fullName", type: "text", required: true, validation: (value) => (value.length < 3 ? "Enter Full Name" : null) },
                 { label: "Email", name: "email", type: "email", required: true, validation: (value) => (!/\S+@\S+\.\S+/.test(value) ? "Invalid email" : null) },
                 { label: "Password", name: "password", type: "password", required: true, validation: (value) => (value.length < 6 ? "Password too short" : null) },
-                { label: "Confirm Password", name: "confirmPassword", type: "password", required: true, validation: (value) => (value.length < 6 ? "Passwords must match" : null) },
                 { label: "Organization Name", name: "orgName", type: "text", required: true, validation: (value) => (value.length < 3 ? "Enter Organization name" : null) }
               ]}
               submitBtn={handleRegisterSubmit}
