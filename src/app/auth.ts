@@ -1,22 +1,23 @@
-import NextAuth, { CredentialsSignin } from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
-import { StaticMessage } from './backend/constants/StaticMessages';
+import NextAuth, { CredentialsSignin } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { StaticMessage } from "./backend/constants/StaticMessages";
 import prisma from "@/lib/prisma";
-import bcrypt from 'bcrypt';
-import authConfig from './auth.config';
+import bcrypt from "bcrypt";
+import authConfig from "./auth.config";
 class CustomError extends CredentialsSignin {
-  code = 'Invalid Credentials';
+  code = "Invalid Credentials";
 }
 
 interface Credentials {
   email: string;
   password: string;
 }
+
 export const {
   handlers: { GET, POST },
-  logIn,
-  logOut,
-  auth
+  signIn,
+  signOut,
+  auth,
 } = NextAuth({
   ...authConfig,
   providers: [
@@ -28,22 +29,25 @@ export const {
         } catch (error) {
           throw new CustomError();
         }
-      }
-    })
-  ]
+      },
+    }),
+  ],
 });
 
 const checkUser = async ({ email, password }: Credentials) => {
   const user = await prisma.users.findUnique({
     where: {
-      email
-    }
+      email,
+    },
   });
+
+  console.log("user ------------>>", user);
+
   if (!user) {
     throw {
       statusCode: 404,
       data: null,
-      message: StaticMessage.UserEmailNotFound
+      message: StaticMessage.UserEmailNotFound,
     };
   }
 
@@ -51,7 +55,7 @@ const checkUser = async ({ email, password }: Credentials) => {
     throw {
       statusCode: 404,
       data: null,
-      message: StaticMessage.UserEmailNotFound
+      message: StaticMessage.UserEmailNotFound,
     };
   }
   const IsMatchPassword = await bcrypt.compare(password, user.password);
@@ -59,15 +63,23 @@ const checkUser = async ({ email, password }: Credentials) => {
     throw {
       statusCode: 401,
       data: null,
-      message: StaticMessage.InvalidPassword
+      message: StaticMessage.InvalidPassword,
     };
   }
 
   const org_role = await prisma.org_roles.findUnique({
-    where: { 
-        user.org_role_uuid 
-    }
+    where: {
+      uuid: user.org_role_uuid,
+    },
   });
+
+  if (!org_role) {
+    throw {
+      statusCode: 404,
+      data: null,
+      message: StaticMessage.RoleNotFound,
+    };
+  }
 
   return {
     email: user.email,

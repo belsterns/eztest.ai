@@ -16,6 +16,18 @@ export class AuthService {
     }
   }
 
+  async fetchUserByUserUuid(userUuid: string) {
+    try {
+      return await prisma.users.findUnique({
+        where: {
+          uuid: userUuid,
+        },
+      });
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
   async saveUserDetails(
     model: UserSignUpRequestDto,
     roleUuid: string,

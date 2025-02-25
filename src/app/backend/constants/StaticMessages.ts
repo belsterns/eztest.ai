@@ -21,6 +21,9 @@ export class StaticMessage {
     "The password you entered is incorrect. Please try again.";
   static LoginSuccessfully = "You have successfully logged in. Welcome back!";
   static RoleNotFound = "Role not found.";
+  static UnAuthorizedUser = "Unauthorized";
+  static CreatedByRequired = "Created by param required";
+  static YouNotAllowedToInviteAUser = "You don't have permission to invite a user";
 }
 
 export class OnboardingType {
@@ -29,7 +32,7 @@ export class OnboardingType {
 }
 
 export class OrganizationRoles {
-  static SuperAdmin = "Super admin";
-  static WorkspaceAdmin = "Workspace admin";
-  static WorkspaceMember = "Workspace member";
+  static SuperAdmin = "super admin";
+  static WorkspaceAdmin = "workspace admin";
+  static WorkspaceMember = "workspace member";
 }
