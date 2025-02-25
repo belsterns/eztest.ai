@@ -9,7 +9,9 @@ export class RoleService {
   async fetchRoleByRoleName(roleName: string) {
     try {
       const role = await prisma.org_roles.findFirst({
-        where: { name: roleName },
+        where: {
+          name: { equals: roleName, mode: "insensitive" },
+        },
         select: { uuid: true },
       });
 
