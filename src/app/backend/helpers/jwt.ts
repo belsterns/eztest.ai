@@ -8,9 +8,7 @@ const DEFAULT_SIGN_OPTION: SignOption = {
   expiresIn: "1h",
 };
 
-const secret = new TextEncoder().encode(
-  process.env.SECRET_KEY
-);
+const secret = new TextEncoder().encode(process.env.SECRET_KEY);
 
 export async function signJwtAccessToken(
   payload: any,

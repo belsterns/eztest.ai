@@ -24,7 +24,7 @@ model users {
 
 model org_roles {
   uuid        String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String
+  name        String   @unique
   description String
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
