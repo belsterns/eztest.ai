@@ -41,8 +41,6 @@ const checkUser = async ({ email, password }: Credentials) => {
     },
   });
 
-  console.log("user ------------>>", user);
-
   if (!user) {
     throw {
       statusCode: 404,
@@ -81,10 +79,14 @@ const checkUser = async ({ email, password }: Credentials) => {
     };
   }
 
-  return {
+  const data = {
     email: user.email,
     user_uuid: user.uuid,
     org_name: user.organization_name,
     org_role: org_role.name,
   };
+
+  console.log("data -------------->>", data);
+
+  return data;
 };
