@@ -6,6 +6,10 @@ export class AuthValidator {
       const schema = yup.object().shape({
         email: yup.string().required().email(),
         password: yup.string().required(),
+        full_name: yup
+          .string()
+          .required()
+          .max(255, "Must be alphanumeric with upto 255 characters"),
         organization_name: yup
           .string()
           .required()
