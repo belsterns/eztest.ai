@@ -5,9 +5,7 @@ import {
   OrganizationRoles,
   StaticMessage,
 } from "../../constants/StaticMessages";
-import { comparePassword } from "../../helpers/PasswordValidator";
 import { getRoleName } from "../../helpers/userRoleUtils";
-import { signJwtAccessToken } from "../../helpers/jwt";
 import { RoleService } from "../../services/auth/role.service";
 
 export class AuthController {

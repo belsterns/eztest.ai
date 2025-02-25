@@ -23,7 +23,9 @@ export class StaticMessage {
   static RoleNotFound = "Role not found.";
   static UnAuthorizedUser = "Unauthorized";
   static CreatedByRequired = "Created by param required";
-  static YouNotAllowedToInviteAUser = "You don't have permission to invite a user";
+  static YouNotAllowedToInviteAUser =
+    "You don't have permission to invite a user";
+  static InvalidCredentials = "Invalid credentials";
 }
 
 export class OnboardingType {

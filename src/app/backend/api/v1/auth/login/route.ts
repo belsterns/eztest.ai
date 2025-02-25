@@ -1,8 +1,8 @@
-import { signIn } from "@/app/auth";
+import { signIn, auth } from "@/app/auth";
 import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 import { baseInterceptor } from "@/app/backend/utils/baseInterceptor";
 
-export const POST = baseInterceptor(async (request, context) => {
+export const POST = baseInterceptor(async (request) => {
   const body = await request.json();
   const { email, password } = body;
 
@@ -20,11 +20,19 @@ export const POST = baseInterceptor(async (request, context) => {
     };
   }
 
-  return new Response(
-    JSON.stringify({
-      message: StaticMessage.LoginSuccessfully,
-      data: response,
-    }),
-    { status: 200 }
-  );
+  // Get user session after successful login
+  const session = await auth();
+
+  if (!session || !session.data) {
+    throw {
+      statusCode: 401,
+      message: "Session not found after login",
+      data: null,
+    };
+  }
+
+  return {
+    message: StaticMessage.LoginSuccessfully,
+    data: session.data,
+  };
 });

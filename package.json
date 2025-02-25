@@ -17,6 +17,7 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "jose": "^6.0.6",
+    "jsonwebtoken": "^9.0.2",
     "next": "15.1.6",
     "next-auth": "^5.0.0-beta.25",
     "octokit": "^4.1.0",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

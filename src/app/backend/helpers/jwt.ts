@@ -1,31 +1,11 @@
-import * as Jose from "jose";
+import jwt from "jsonwebtoken";
 
-interface SignOption {
-  expiresIn: string;
-}
-
-const DEFAULT_SIGN_OPTION: SignOption = {
-  expiresIn: "1h",
-};
-
-const secret = new TextEncoder().encode(process.env.SECRET_KEY);
-
-export async function signJwtAccessToken(
-  payload: any,
-  options: SignOption = DEFAULT_SIGN_OPTION
-) {
-  const token = await new Jose.SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime(options.expiresIn)
-    .sign(secret);
-  return token;
-}
-
-export async function verifyJwt(token: string) {
-  try {
-    const decoded = await Jose.jwtVerify(token, secret);
-    return decoded;
-  } catch (error) {
-    return null;
+export function generateJwtToken(userInfo: any) {
+  if (!process.env.AUTH_SECRET) {
+    throw new Error("AUTH_SECRET is not defined in environment variables");
   }
+
+  return jwt.sign(userInfo, process.env.AUTH_SECRET, {
+    expiresIn: "30d",
+  });
 }

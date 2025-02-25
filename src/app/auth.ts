@@ -4,6 +4,8 @@ import { StaticMessage } from "./backend/constants/StaticMessages";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import authConfig from "./auth.config";
+import { generateJwtToken } from "./backend/helpers/jwt";
+
 class CustomError extends CredentialsSignin {
   code = "Invalid Credentials";
 }
@@ -36,12 +38,10 @@ export const {
 
 const checkUser = async ({ email, password }: Credentials) => {
   const user = await prisma.users.findUnique({
-    where: {
-      email,
-    },
+    where: { email },
   });
 
-  if (!user) {
+  if (!user || !user.password) {
     throw {
       statusCode: 404,
       data: null,
@@ -49,15 +49,8 @@ const checkUser = async ({ email, password }: Credentials) => {
     };
   }
 
-  if (!user.password) {
-    throw {
-      statusCode: 404,
-      data: null,
-      message: StaticMessage.UserEmailNotFound,
-    };
-  }
-  const IsMatchPassword = await bcrypt.compare(password, user.password);
-  if (!IsMatchPassword) {
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
     throw {
       statusCode: 401,
       data: null,
@@ -65,13 +58,11 @@ const checkUser = async ({ email, password }: Credentials) => {
     };
   }
 
-  const org_role = await prisma.org_roles.findUnique({
-    where: {
-      uuid: user.org_role_uuid,
-    },
+  const role = await prisma.org_roles.findUnique({
+    where: { uuid: user.org_role_uuid },
   });
 
-  if (!org_role) {
+  if (!role) {
     throw {
       statusCode: 404,
       data: null,
@@ -79,14 +70,26 @@ const checkUser = async ({ email, password }: Credentials) => {
     };
   }
 
-  const data = {
+  const userInfo = {
+    uuid: user.uuid,
+    full_name: user.full_name,
+    organization_name: user.organization_name,
     email: user.email,
-    user_uuid: user.uuid,
-    org_name: user.organization_name,
-    org_role: org_role.name,
+    org_role_uuid: user.org_role_uuid,
+    is_active: user.is_active,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+    role_info: {
+      uuid: role.uuid,
+      name: role.name,
+    },
   };
 
-  console.log("data -------------->>", data);
+  // Generate JWT token
+  const token = generateJwtToken(userInfo);
 
-  return data;
+  return {
+    user_info: userInfo,
+    auth_info: token,
+  };
 };
