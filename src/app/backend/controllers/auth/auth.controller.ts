@@ -15,11 +15,11 @@ export class AuthController {
     this.authService = new AuthService();
   }
 
-  async SignUp(body: UserSignUpRequestDto) {
+  async Register(body: UserSignUpRequestDto) {
     try {
       await this.authValidator.SignUp(body);
 
-      const { email } = body;
+      const { email, password, organization_name } = body;
 
       const isUserEmailExist = await this.authService.fetchUserByEmail(email);
 
@@ -42,7 +42,7 @@ export class AuthController {
     }
   }
 
-  async SignIn(body: UserSignInRequestDto) {
+  async LogIn(body: UserSignInRequestDto) {
     try {
       await this.authValidator.SignIn(body);
 

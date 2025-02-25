@@ -4,16 +4,12 @@ export class AuthValidator {
   async SignUp(body: UserSignUpRequestDto) {
     try {
       const schema = yup.object().shape({
-        full_name: yup
-          .string()
-          .required()
-          .max(255, "Must be alphanumeric with upto 255 characters"),
+        email: yup.string().required().email(),
+        password: yup.string().required(),
         organization_name: yup
           .string()
           .required()
           .max(255, "Must be alphanumeric with upto 255 characters"),
-        email: yup.string().required().email(),
-        password: yup.string().required(),
       });
 
       await schema.validate(body, { abortEarly: false });
