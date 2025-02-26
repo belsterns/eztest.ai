@@ -1,5 +1,8 @@
 import { auth, signIn } from "@/app/auth";
-import { StaticMessage } from "@/app/backend/constants/StaticMessages";
+import {
+  StaticMessage,
+  StatusCode,
+} from "@/app/backend/constants/StaticMessages";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -16,8 +19,8 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session || !session.data) {
       throw {
-        statusCode: 401,
-        message: "Session not found after login",
+        statusCode: StatusCode.Unauthorized,
+        message: StaticMessage.SessionNotFound,
         data: null,
       };
     }
@@ -28,22 +31,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     const cleanErrorMessage =
-      error?.message?.split(" Read more at ")[0] || "Authentication failed";
+      error?.message?.split(" Read more at ")[0] ||
+      StaticMessage.AuthenticationFailed;
 
     let statusCode;
 
-    if (
-      cleanErrorMessage.includes(
-        "No account found with this email. Please enter a valid email address.."
-      )
-    ) {
-      statusCode = 404;
-    } else if (
-      cleanErrorMessage.includes(
-        "The password you entered is incorrect. Please try again.."
-      )
-    ) {
-      statusCode = 401;
+    if (cleanErrorMessage.includes(StaticMessage.UserEmailNotFound)) {
+      statusCode = StatusCode.NotFound;
+    } else if (cleanErrorMessage.includes(StaticMessage.InvalidPassword)) {
+      statusCode = StatusCode.Unauthorized;
     }
 
     return NextResponse.json(
