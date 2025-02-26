@@ -6,10 +6,6 @@ import bcrypt from "bcrypt";
 import authConfig from "./auth.config";
 import { generateJwtToken } from "./backend/helpers/jwt";
 
-class CustomError extends CredentialsSignin {
-  code = "Invalid Credentials";
-}
-
 interface Credentials {
   email: string;
   password: string;
@@ -28,8 +24,8 @@ export const {
         try {
           const user = await checkUser(credentials as any);
           return user;
-        } catch (error) {
-          throw new CustomError();
+        } catch (error: any) {
+          throw new CredentialsSignin(error.message || "Authentication failed");
         }
       },
     }),
@@ -37,25 +33,25 @@ export const {
 });
 
 const checkUser = async ({ email, password }: Credentials) => {
+  if (!email || !password) {
+    throw new CredentialsSignin("Email and password are required.");
+  }
+
   const user = await prisma.users.findUnique({
-    where: { email },
+    where: { email, is_active: true },
   });
 
-  if (!user || !user.password) {
-    throw {
-      statusCode: 404,
-      data: null,
-      message: StaticMessage.UserEmailNotFound,
-    };
+  if (!user) {
+    throw new CredentialsSignin(StaticMessage.UserEmailNotFound);
+  }
+
+  if (!user.password) {
+    throw new CredentialsSignin("Account does not have a password set.");
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    throw {
-      statusCode: 401,
-      data: null,
-      message: StaticMessage.InvalidPassword,
-    };
+    throw new CredentialsSignin(StaticMessage.InvalidPassword);
   }
 
   const role = await prisma.org_roles.findUnique({
@@ -63,11 +59,7 @@ const checkUser = async ({ email, password }: Credentials) => {
   });
 
   if (!role) {
-    throw {
-      statusCode: 404,
-      data: null,
-      message: StaticMessage.RoleNotFound,
-    };
+    throw new CredentialsSignin(StaticMessage.RoleNotFound);
   }
 
   const userInfo = {
