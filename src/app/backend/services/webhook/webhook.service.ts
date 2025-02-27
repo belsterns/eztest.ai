@@ -5,9 +5,6 @@ import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 import { GitProviderFactory } from "../../infrastructure/factory/GitProviderFactory";
 
 export class WebhookService {
-  /**
-   * Find repository details using the webhook UUID.
-   */
   async findRepositoryByWebhookUuid(webhookUuid: string) {
     const repository = await prisma.repositories.findUnique({
       where: {
@@ -25,9 +22,7 @@ export class WebhookService {
     return repository;
   }
 
-  /**
-   * Process webhook event, detect Git provider, and handle branch creation & PR.
-   */
+
   async processWebhook(
     repoFullName: string,
     baseBranch: string,
@@ -36,7 +31,6 @@ export class WebhookService {
     const repository = await this.findRepositoryByWebhookUuid(webhookUuid);
     const repoToken = decryptToken(repository.token);
 
-    // Get the correct Git provider (GitHub or GitLab)
     const provider = GitProviderFactory.getProvider(
       repository.host_url,
       repoToken
@@ -54,10 +48,8 @@ export class WebhookService {
 
     const newBranch = `${baseBranch}_unitTest`;
 
-    // Create a new branch
     await provider.createBranch(repoFullName, baseBranch, newBranch);
 
-    // Create a pull request
     await provider.createPullRequest(
       repoFullName,
       baseBranch,
