@@ -82,7 +82,7 @@ export class RepositoryController {
       return {
         message: StaticMessage.RepoDetailsSavedSuccessfully,
         data: {
-          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/webhook/${repository.webhook_uuid}`,
+          webhook_url: `${process.env.NEXT_PUBLIC_DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
         },
       };
     } catch (error: any) {
@@ -136,7 +136,7 @@ export class RepositoryController {
       return {
         message: StaticMessage.RepoDetailsUpdatedSuccessfully,
         data: {
-          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/webhook/${repository.webhook_uuid}`,
+          webhook_url: `${process.env.NEXT_PUBLIC_DOMAIN_BASE_URL}/api/webhook/${repository.webhook_uuid}`,
         },
       };
     } catch (error: any) {
