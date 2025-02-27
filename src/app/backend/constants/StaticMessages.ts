@@ -28,6 +28,13 @@ export class StaticMessage {
   static YouNotAllowedToInviteAUser =
     "You don't have permission to invite a user";
   static InvalidCredentials = "Invalid credentials";
+  static OtpSuccess = "OTP sent";
+  static OTPEmailFailed = "OTP failed";
+  static OtpExpires = "OTP expired";
+  static OtpIncorrect = "Incorrect OTP";
+  static PasswordEmailFailed = "Email failed";
+  static PasswordIsRequired = "Password is required";
+  static UserCreatedEmailFailed = "User created notification email failed";
 }
 
 export class OnboardingType {

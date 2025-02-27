@@ -5,7 +5,7 @@ export class AuthValidator {
     try {
       const schema = yup.object().shape({
         email: yup.string().required().email(),
-        password: yup.string().required(),
+        password: yup.string().optional(),
         full_name: yup
           .string()
           .required()
