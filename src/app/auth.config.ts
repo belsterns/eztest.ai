@@ -18,7 +18,7 @@ export default {
       return token;
     },
     async session({ session, token }) {
-      session.user = token.user_info;
+      (session.user as any) = token.user_info;
       session.auth_info = token.auth_info;
       return session;
     },

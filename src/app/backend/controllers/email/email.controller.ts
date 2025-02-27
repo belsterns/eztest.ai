@@ -11,7 +11,7 @@ export class EmailController {
         subject: `Welcome to EZTest AI, ${user.full_name}!`,
         html: userCreatedEmailTemplate(user, password),
       };
-      let mailStatus = await emailTransporter.sendMail(options);
+      const  mailStatus = await emailTransporter.sendMail(options);
       if (!mailStatus) {
         throw new Error(StaticMessage.UserCreatedEmailFailed);
       }

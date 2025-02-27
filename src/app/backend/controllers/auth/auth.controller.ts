@@ -10,6 +10,7 @@ import { RoleService } from "../../services/auth/role.service";
 import { EmailController } from "../email/email.controller";
 import { generatePassword } from "../../helpers/passwordGenerator";
 import * as bcrypt from "bcrypt";
+import { UserSignUpRequestDto } from "../../infrastructure/dtos/UserSignUpRequestDto";
 
 export class AuthController {
   private authValidator: AuthValidator;
