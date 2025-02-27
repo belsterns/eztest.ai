@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { WebhookService } from "@/app/backend/services/webhook/webhook.service";
+import { GitWebhookHandlerFactory } from "@/app/backend/infrastructure/factory/handler/GitWebhookHandlerFactory";
 
 export class WebhookController {
   private webhookService: WebhookService;
@@ -8,10 +9,13 @@ export class WebhookController {
     this.webhookService = new WebhookService();
   }
 
-  async handleGitHubWebhook(payload: any, webhookUuid: string) {
+  async handleWebhook(payload: any, webhookUuid: string) {
     try {
       const branchRef = payload.ref;
-      const repoFullName = payload.repository.full_name;
+
+      // Use Factory to get the correct webhook handler (GitHub or GitLab)
+      const webhookHandler = GitWebhookHandlerFactory.getHandler(payload);
+      const repoFullName = webhookHandler.extractRepoName(payload);
 
       if (!branchRef || !branchRef.startsWith("refs/heads/")) {
         return NextResponse.json(
