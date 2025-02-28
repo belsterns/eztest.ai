@@ -10,7 +10,7 @@ export class RoleService {
         where: {
           name: { equals: roleName, mode: "insensitive" },
         },
-        select: { uuid: true },
+        select: { uuid: true, name: true },
       });
 
       if (!role) {
