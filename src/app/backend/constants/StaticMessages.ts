@@ -35,6 +35,19 @@ export class StaticMessage {
   static PasswordEmailFailed = "Email failed";
   static PasswordIsRequired = "Password is required";
   static UserCreatedEmailFailed = "User created notification email failed";
+
+  // User message
+  static NoAccess = "No access";
+
+  // Workspace messages
+  static WorkspaceAlreadyExists =
+    "A workspace with the same name already exists for the user.";
+  static WorkspaceNotFound = "Workspace not found.";
+  static UserWorkspaceNotFound = "User workspace not found.";
+  static WorkspaceCreatedSuccessfully = "A workspace created successfully.";
+  static WorkspaceFetchedSuccessfully =
+    "A workspace details fetched successfully.";
+  static WorkspaceDeletedSuccessfully = "A workspace deleted successfully.";
 }
 
 export class OnboardingType {
