@@ -57,9 +57,10 @@ export class AuthController {
         }
       }
 
-      const { uuid: roleUuid } = await this.roleService.fetchRoleByRoleName(
-        await getRoleName(onboardingType)
-      );
+      const { uuid: roleUuid, name: roleName } =
+        await this.roleService.fetchRoleByRoleName(
+          await getRoleName(onboardingType)
+        );
 
       const { email, password } = body;
 
@@ -109,7 +110,15 @@ export class AuthController {
 
       return {
         message: StaticMessage.SuccessfullyRegister,
-        data: null,
+        user_info: {
+          uuid: user.uuid,
+          full_name: user.full_name,
+          organization_name: user.organization_name,
+          email: user.email,
+          org_role_uuid: user.org_role_uuid,
+          is_active: true,
+          role_info: { uuid: roleUuid, name: roleName },
+        },
       };
     } catch (err: any) {
       throw err;
