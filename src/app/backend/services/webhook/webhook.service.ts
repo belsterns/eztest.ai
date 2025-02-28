@@ -1,4 +1,3 @@
-import axios from "axios";
 import prisma from "@/lib/prisma";
 import { decryptToken } from "@/app/backend/utils/cryptoUtils";
 import { StaticMessage } from "@/app/backend/constants/StaticMessages";
@@ -21,7 +20,6 @@ export class WebhookService {
     }
     return repository;
   }
-
 
   async processWebhook(
     repoFullName: string,

@@ -3,7 +3,7 @@ import type { NextAuthConfig } from "next-auth";
 export default {
   secret: process.env.AUTH_SECRET,
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // Ensure strategy is JWT-based
     maxAge: 30 * 24 * 60 * 60,
   },
   jwt: {
@@ -18,13 +18,9 @@ export default {
       return token;
     },
     async session({ session, token }) {
-      return {
-        ...session,
-        data: {
-          user_info: token.user_info,
-          auth_info: token.auth_info,
-        },
-      };
+      (session.user as any) = token.user_info;
+      session.auth_info = token.auth_info;
+      return session;
     },
   },
   providers: [],

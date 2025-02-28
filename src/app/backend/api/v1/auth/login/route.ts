@@ -10,14 +10,23 @@ export async function POST(request: NextRequest) {
   const { email, password } = body;
 
   try {
-    await signIn("credentials", {
+    const signInResponse = await signIn("credentials", {
       redirect: false,
       email,
       password,
     });
 
+    if (!signInResponse) {
+      throw {
+        statusCode: StatusCode.Unauthorized,
+        message: StaticMessage.AuthenticationFailed,
+        data: null,
+      };
+    }
+
     const session = await auth();
-    if (!session || !session.data) {
+
+    if (!session || !session.auth_info) {
       throw {
         statusCode: StatusCode.Unauthorized,
         message: StaticMessage.SessionNotFound,
@@ -27,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: StaticMessage.LoginSuccessfully,
-      data: session.data,
+      data: session,
     });
   } catch (error: any) {
     const cleanErrorMessage =

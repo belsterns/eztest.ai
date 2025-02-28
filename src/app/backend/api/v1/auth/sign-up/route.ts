@@ -7,7 +7,7 @@ import { baseInterceptor } from "@/app/backend/utils/baseInterceptor";
 
 const authController = new AuthController();
 
-export const POST = baseInterceptor(async (request, context) => {
+export const POST = baseInterceptor(async (request) => {
   const onboardingType = request.nextUrl.searchParams.get("onboardingType");
   const createdBy = request.nextUrl.searchParams.get("createdBy");
 

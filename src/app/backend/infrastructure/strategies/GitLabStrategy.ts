@@ -1,5 +1,4 @@
 import { IRepoStrategy } from "./IRepoStrategy";
-import axios from "axios";
 
 export class GitLabStrategy implements IRepoStrategy {
   async findRepositoryDetails(
@@ -9,7 +8,6 @@ export class GitLabStrategy implements IRepoStrategy {
     repoToken: string
   ) {
     try {
-      console.log(baseUrl, _organizationName, repoName, repoToken);
       const url = baseUrl ?? process.env.GITLAB_API_BASE_URL;
 
       const projectPath = await encodeURIComponent(
@@ -26,7 +24,7 @@ export class GitLabStrategy implements IRepoStrategy {
       };
 
       const searchResponse = await fetch(
-        `https://gitlab.com/api/v4/projects/${projectPath}`,
+        `${url}/projects/${projectPath}`,
         requestOptions
       );
 
