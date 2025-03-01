@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
 import Stack from '@mui/material/Stack';
 import ColorModeSelect from '../../../services/themeprovidor/theme/ColorModeSelect';
@@ -7,40 +7,36 @@ import Content from '../../../components/auth/content';
 import AuthForm from '@/app/frontend/components/auth/authForm';
 import { Alert } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useApi } from '@/app/frontend/hooks/useAPICall';
 
 export default function Register() {
     const router = useRouter();
     const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-    
+    const { success, makeApiCall } = useApi();
+
     const handleRegisterSubmit = async (formData: Record<string, string>) => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_DOMAIN_BASE_URL}/api/auth/sign-up?onboardingType=signup`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              full_name: formData.fullName,
-              organization_name: formData.orgName,
-              email: formData.email,
-              password: formData.password,
-            }),
-          }
-        );
-    
-        const data = await response.json();
-    
-        if (!response.ok) {
-          throw new Error(data.message || "Something went wrong, please try again.");
-        }
-    
-        setAlertMessage({ type: "success", text: "You have successfully registered." });
-        router.push("/login");
+        await makeApiCall({
+          url: '/api/auth/sign-up?onboardingType=signup',
+          method: 'POST',
+          body: {
+            full_name: formData.fullName,
+            organization_name: formData.orgName,
+            email: formData.email,
+            password: formData.password,
+          },
+          isShowAlert: true
+        });
       } catch (error: any) {
         setAlertMessage({ type: "error", text: error.message });
       }
     };
     
+    useEffect(()=> {
+       if(success){
+        router.push("/workspaces");
+       }
+    },[success])
 
   return (
     <>

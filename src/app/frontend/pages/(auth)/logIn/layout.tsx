@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: "EZTest.AI LogIn",
+    title: "EZTest.AI Login",
     description: "EZTest.AI LogIn Page",
 };
 
