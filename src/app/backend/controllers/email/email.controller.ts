@@ -6,7 +6,7 @@ export class EmailController {
   async sendUserCreatedEmail(user: any, password?: string): Promise<void> {
     try {
       const options = {
-        from: process.env.EMAIL_FROM,
+        from: process.env.SMTP_FROM,
         to: user.email,
         subject: `Welcome to EZTest AI, ${user.full_name}!`,
         html: userCreatedEmailTemplate(user, password),
