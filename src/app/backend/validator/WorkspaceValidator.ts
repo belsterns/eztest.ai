@@ -8,9 +8,10 @@ export class WorkspaceValidator {
   async CreateWorkspace(body: CreateWorkspaceRequestDto) {
     try {
       const schema = yup.object().shape({
-        name: yup.string().required(),
+        name: yup.string().strict().required(),
         description: yup
           .string()
+          .strict()
           .required()
           .max(255, "Must be alphanumeric with upto 255 characters"),
       });
@@ -32,9 +33,10 @@ export class WorkspaceValidator {
   async UpdateWorkspace(body: UpdateWorkspaceRequestDto) {
     try {
       const schema = yup.object().shape({
-        name: yup.string().optional(),
+        name: yup.string().strict().optional(),
         description: yup
           .string()
+          .strict()
           .optional()
           .max(255, "Must be alphanumeric with upto 255 characters"),
       });
