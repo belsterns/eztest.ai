@@ -2,7 +2,7 @@
 import { Box, Typography } from '@mui/material';
 import Header from '../../../components/header/header';
 
-export default function Users(props: { disableCustomTheme?: boolean }) {
+export default function Users() {
   const breadCrumbItems = [
     {label:'Belsterns' , route: '/workspaces'},
     {label: 'Users' , route: '/users'}

@@ -2,7 +2,7 @@
 import { Box, Typography } from '@mui/material';
 import Header from '../../../components/header/header';
 
-export default function Repositories(props: { disableCustomTheme?: boolean }) {
+export default function Repositories() {
   const breadCrumbItems = [
     {label:'Belsterns' , route: '/workspaces'},
     {label: 'Repositories' , route: '/repositories'}

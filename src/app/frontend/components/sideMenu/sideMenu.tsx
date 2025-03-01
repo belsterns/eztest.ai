@@ -6,7 +6,6 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { useSession } from 'next-auth/react';
 import MenuContent from './menuContent';
 import OptionsMenu from './optionsMenu';
 
@@ -24,8 +23,6 @@ const Drawer = styled(MuiDrawer)({
 });
 
 export default function SideMenu() {
-    const { data: session } = useSession();
-    
     return (
       <Drawer
         variant="permanent"

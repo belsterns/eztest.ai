@@ -8,7 +8,7 @@ import AuthForm from '@/app/frontend/components/auth/authForm';
 import { Alert } from '@mui/material';
 import { useRouter } from 'next/navigation';
 
-export default function Register(props: { disableCustomTheme?: boolean }) {
+export default function Register() {
     const router = useRouter();
     const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
     

@@ -2,7 +2,7 @@
 import { Box, Typography } from '@mui/material';
 import Header from '../../../components/header/header';
 
-export default function Workspace(props: { disableCustomTheme?: boolean }) {
+export default function Workspace() {
   const breadCrumbItems = [
     {label:'Belsterns' , route: '/workspaces'},
     {label: 'Workspaces' , route: '/workspaces'}

@@ -4,7 +4,6 @@ import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import Breadcrumbs, { breadcrumbsClasses } from '@mui/material/Breadcrumbs';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const StyledBreadcrumbs = styled(Breadcrumbs)(({ theme }) => ({
@@ -25,7 +24,6 @@ interface Item {
 
 export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
   const [mounted, setMounted] = useState(false);
-  const router = useRouter();
 
   // Ensure it only renders after mounting to avoid SSR mismatch
   useEffect(() => {

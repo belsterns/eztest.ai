@@ -33,8 +33,8 @@ export default function AuthForm({ formType, fields, submitBtn }: AuthFormProps)
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const formData = new FormData(event.currentTarget);
-      let data: Record<string, string> = {};
-      let newErrors: { [key: string]: string } = {};
+      const data: Record<string, string> = {};
+      const newErrors: { [key: string]: string } = {};
   
       // Validate input fields
       fields.forEach(({ name, validation }) => {

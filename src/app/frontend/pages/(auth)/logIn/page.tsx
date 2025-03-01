@@ -9,9 +9,9 @@ import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export default function SignIn(props: { disableCustomTheme?: boolean }) {
+export default function SignIn() {
   const { data: session } = useSession();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const errorMessage: string | null = null;
   const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const router = useRouter();
 
@@ -29,7 +29,7 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
         router.push('/workspaces');
       }   
     } catch (error: any) {
-      setAlertMessage({ type: "error", text: "Internal Server Error" })
+      setAlertMessage({ type: "error", text: `${error.message}`})
     }
   };
 

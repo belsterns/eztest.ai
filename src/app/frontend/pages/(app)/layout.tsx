@@ -9,7 +9,6 @@ import AppNavbar from '../../components/appNavbar/appNavbar';
 import SideMenu from '../../components/sideMenu/sideMenu';
 
 export default function Layout({
-  disableCustomTheme,
   children,
 }: {
   disableCustomTheme?: boolean;
