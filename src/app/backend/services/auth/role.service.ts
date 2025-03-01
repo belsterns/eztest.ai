@@ -1,7 +1,5 @@
 import prisma from "@/lib/prisma";
 import { StaticMessage } from "@/app/backend/constants/StaticMessages";
-import * as bcrypt from "bcrypt";
-import { randomUUID } from "crypto";
 
 export class RoleService {
   constructor() {}
@@ -12,7 +10,7 @@ export class RoleService {
         where: {
           name: { equals: roleName, mode: "insensitive" },
         },
-        select: { uuid: true },
+        select: { uuid: true, name: true },
       });
 
       if (!role) {

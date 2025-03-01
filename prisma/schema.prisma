@@ -19,7 +19,8 @@ model users {
   created_at        DateTime @default(now())
   updated_at        DateTime @default(now()) @updatedAt
 
-  org_role org_roles @relation(fields: [org_role_uuid], references: [uuid], onDelete: Cascade)
+  org_role        org_roles         @relation(fields: [org_role_uuid], references: [uuid], onDelete: Cascade)
+  user_workspaces user_workspaces[]
 }
 
 model org_roles {
@@ -31,6 +32,31 @@ model org_roles {
   updated_at  DateTime @default(now()) @updatedAt
 
   users users[]
+}
+
+model workspaces {
+  uuid        String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(255)
+  description String   @db.VarChar(255)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+
+  user_workspaces user_workspaces[]
+}
+
+model user_workspaces {
+  uuid           String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_uuid      String   @db.Uuid
+  workspace_uuid String   @db.Uuid
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now()) @updatedAt
+
+  user      users      @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
+  workspace workspaces @relation(fields: [workspace_uuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([user_uuid, workspace_uuid])
 }
 
 model repositories {

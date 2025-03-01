@@ -3,28 +3,24 @@ import type { NextAuthConfig } from "next-auth";
 export default {
   secret: process.env.AUTH_SECRET,
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // Ensure strategy is JWT-based
     maxAge: 30 * 24 * 60 * 60,
   },
   jwt: {
     maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
-    jwt({ token, user, trigger, session }) {
+    async jwt({ token, user }) {
       if (user) {
-        token.user = user.id as string;
-        token.role = (user as any).role as string;
-      }
-      if (trigger === "update" && session) {
-        token = { ...token, ...session };
+        token.user_info = user.user_info;
+        token.auth_info = user.auth_info;
       }
       return token;
     },
-    session({ session, token }: any) {
-      console.log("session ---------->>", session);
-      console.log("token ---------->>", token);
-
-      return { ...session, user: token };
+    async session({ session, token }) {
+      (session.user as any) = token.user_info;
+      session.auth_info = token.auth_info;
+      return session;
     },
   },
   providers: [],

@@ -1,36 +1,37 @@
 import { IRepoStrategy } from "./IRepoStrategy";
-import axios from "axios";
 
 export class GitLabStrategy implements IRepoStrategy {
   async findRepositoryDetails(
     baseUrl: string,
     _organizationName: string,
     repoName: string,
-    repoToken: string,
+    repoToken: string
   ) {
-    const url = baseUrl ?? process.env.GITLAB_API_BASE_URL;
+    try {
+      const url = baseUrl ?? process.env.GITLAB_API_BASE_URL;
 
-    const searchResponse = await axios.get(
-      `${url}/projects?search=${encodeURIComponent(repoName)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${repoToken}`,
-        },
-      },
-    );
+      const projectPath = await encodeURIComponent(
+        `${_organizationName}/${repoName}`
+      );
 
-    if (searchResponse.data.length === 0) {
-      throw new Error("Repository not found");
+      const myHeaders = new Headers();
+      myHeaders.append("PRIVATE-TOKEN", repoToken);
+
+      const requestOptions: any = {
+        method: "GET",
+        headers: myHeaders,
+        redirect: "follow",
+      };
+
+      const searchResponse = await fetch(
+        `${url}/projects/${projectPath}`,
+        requestOptions
+      );
+
+      return searchResponse.json();
+    } catch (err: any) {
+      console.log(err);
+      throw err;
     }
-
-    const repo = searchResponse.data[0];
-
-    const repoResponse = await axios.get(`${url}/projects/${repo.id}`, {
-      headers: {
-        Authorization: `Bearer ${repoToken}`,
-      },
-    });
-
-    return repoResponse.data;
   }
 }

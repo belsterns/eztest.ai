@@ -1,24 +1,28 @@
-import prisma from "@/lib/prisma";
 import { AuthValidator } from "../../validator/AuthValidator";
 import { AuthService } from "../../services/auth/auth.service";
 import {
+  OnboardingType,
   OrganizationRoles,
   StaticMessage,
 } from "../../constants/StaticMessages";
-import { comparePassword } from "../../helpers/PasswordValidator";
 import { getRoleName } from "../../helpers/userRoleUtils";
-import { signJwtAccessToken } from "../../helpers/jwt";
 import { RoleService } from "../../services/auth/role.service";
+import { EmailController } from "../email/email.controller";
+import { generatePassword } from "../../helpers/passwordGenerator";
+import * as bcrypt from "bcrypt";
+import { UserSignUpRequestDto } from "../../infrastructure/dtos/UserSignUpRequestDto";
 
 export class AuthController {
   private authValidator: AuthValidator;
   private authService: AuthService;
   private roleService: RoleService;
+  private emailController: EmailController;
 
   constructor() {
     this.authValidator = new AuthValidator();
     this.authService = new AuthService();
     this.roleService = new RoleService();
+    this.emailController = new EmailController();
   }
 
   async Register(
@@ -53,11 +57,12 @@ export class AuthController {
         }
       }
 
-      const { uuid: roleUuid } = await this.roleService.fetchRoleByRoleName(
-        await getRoleName(onboardingType)
-      );
+      const { uuid: roleUuid, name: roleName } =
+        await this.roleService.fetchRoleByRoleName(
+          await getRoleName(onboardingType)
+        );
 
-      const { email } = body;
+      const { email, password } = body;
 
       const isUserEmailExist = await this.authService.fetchUserByEmail(email);
 
@@ -69,11 +74,51 @@ export class AuthController {
         };
       }
 
-      await this.authService.saveUserDetails(body, roleUuid, createdBy);
+      let hashPassword;
+      let randomPassword;
+
+      if (onboardingType?.toLowerCase() === OnboardingType.SignUp) {
+        if (!password) {
+          throw {
+            statusCode: 400,
+            message: StaticMessage.PasswordIsRequired,
+            data: null,
+          };
+        }
+        hashPassword = await bcrypt.hash(password, 10);
+      } else if (onboardingType?.toLowerCase() === OnboardingType.Invite) {
+        randomPassword = generatePassword();
+        hashPassword = await bcrypt.hash(randomPassword, 10);
+      }
+
+      const updatedBody = {
+        ...body,
+        password: hashPassword as string,
+      };
+
+      const user = await this.authService.saveUserDetails(
+        updatedBody,
+        roleUuid,
+        createdBy
+      );
+
+      if (onboardingType?.toLowerCase() === OnboardingType.SignUp) {
+        await this.emailController.sendUserCreatedEmail(user);
+      } else if (onboardingType?.toLowerCase() === OnboardingType.Invite) {
+        await this.emailController.sendUserCreatedEmail(user, randomPassword);
+      }
 
       return {
         message: StaticMessage.SuccessfullyRegister,
-        data: null,
+        user_info: {
+          uuid: user.uuid,
+          full_name: user.full_name,
+          organization_name: user.organization_name,
+          email: user.email,
+          org_role_uuid: user.org_role_uuid,
+          is_active: true,
+          role_info: { uuid: roleUuid, name: roleName },
+        },
       };
     } catch (err: any) {
       throw err;

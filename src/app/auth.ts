@@ -4,9 +4,7 @@ import { StaticMessage } from "./backend/constants/StaticMessages";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import authConfig from "./auth.config";
-class CustomError extends CredentialsSignin {
-  code = "Invalid Credentials";
-}
+import { generateJwtToken } from "./backend/helpers/jwt";
 
 interface Credentials {
   email: string;
@@ -26,8 +24,8 @@ export const {
         try {
           const user = await checkUser(credentials as any);
           return user;
-        } catch (error) {
-          throw new CustomError();
+        } catch (error: any) {
+          throw new CredentialsSignin(error.message || "Authentication failed");
         }
       },
     }),
@@ -35,55 +33,55 @@ export const {
 });
 
 const checkUser = async ({ email, password }: Credentials) => {
+  if (!email || !password) {
+    throw new CredentialsSignin("Email and password are required.");
+  }
+
   const user = await prisma.users.findUnique({
-    where: {
-      email,
-    },
+    where: { email, is_active: true },
   });
 
   if (!user) {
-    throw {
-      statusCode: 404,
-      data: null,
-      message: StaticMessage.UserEmailNotFound,
-    };
+    throw new CredentialsSignin(StaticMessage.UserEmailNotFound);
   }
 
   if (!user.password) {
-    throw {
-      statusCode: 404,
-      data: null,
-      message: StaticMessage.UserEmailNotFound,
-    };
-  }
-  const IsMatchPassword = await bcrypt.compare(password, user.password);
-  if (!IsMatchPassword) {
-    throw {
-      statusCode: 401,
-      data: null,
-      message: StaticMessage.InvalidPassword,
-    };
+    throw new CredentialsSignin("Account does not have a password set.");
   }
 
-  const org_role = await prisma.org_roles.findUnique({
-    where: {
-      uuid: user.org_role_uuid,
-    },
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    throw new CredentialsSignin(StaticMessage.InvalidPassword);
+  }
+
+  const role = await prisma.org_roles.findUnique({
+    where: { uuid: user.org_role_uuid },
   });
 
-  if (!org_role) {
-    throw {
-      statusCode: 404,
-      data: null,
-      message: StaticMessage.RoleNotFound,
-    };
+  if (!role) {
+    throw new CredentialsSignin(StaticMessage.RoleNotFound);
   }
 
-  const data = {
+  const userInfo = {
+    uuid: user.uuid,
+    full_name: user.full_name,
+    organization_name: user.organization_name,
     email: user.email,
-    user_uuid: user.uuid,
-    org_name: user.organization_name,
-    org_role: org_role.name,
+    org_role_uuid: user.org_role_uuid,
+    is_active: user.is_active,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+    role_info: {
+      uuid: role.uuid,
+      name: role.name,
+    },
   };
-  return data;
+
+  // Generate JWT token
+  const token = generateJwtToken(userInfo);
+
+  return {
+    user_info: userInfo,
+    auth_info: token,
+  };
 };

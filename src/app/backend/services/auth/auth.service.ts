@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import * as bcrypt from "bcrypt";
+import { UserSignUpRequestDto } from "../../infrastructure/dtos/UserSignUpRequestDto";
 
 export class AuthService {
   constructor() {}
@@ -41,7 +41,7 @@ export class AuthService {
           email,
           full_name,
           organization_name,
-          password: await bcrypt.hash(password, 10),
+          password,
           org_role_uuid: roleUuid,
           created_by: createdBy || null,
         },
