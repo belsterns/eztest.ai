@@ -5,12 +5,14 @@ import { SessionProvider } from 'next-auth/react';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      <AppRouterCacheProvider>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
-      </AppRouterCacheProvider>
-    </SessionProvider>   
+    <>
+      <SessionProvider>
+        <AppRouterCacheProvider>
+            <ThemeProvider>
+                {children}
+            </ThemeProvider>
+        </AppRouterCacheProvider>
+      </SessionProvider>
+    </> 
   );
 }

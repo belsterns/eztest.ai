@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import {
   Box,
@@ -8,10 +7,10 @@ import {
   FormLabel,
   TextField,
   Link,
+  Button
 } from "@mui/material";
 import ForgotPassword from "./forgotPassword";
-import Card from "../../elements/card/card";
-import Button from "../../elements/button/button";
+import Card from "../../elements/card/authFormcard";
 
 interface Field {
   label: string;
@@ -103,7 +102,7 @@ export default function AuthForm({ formType, fields, submitBtn }: AuthFormProps)
 
         <Typography sx={{ textAlign: "center" }}>
           { isLogIn ? "Don't have an account?" : "Already have an account?"}{" "}
-          <Link href={ isLogIn ? "/register" : "/log-in"} variant="body2">
+          <Link href={ isLogIn ? "/register" : "/login"} variant="body2">
             { isLogIn ? "Register" : "Log In"}
           </Link>
         </Typography>

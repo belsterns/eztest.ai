@@ -1,18 +1,22 @@
 'use client';
-import * as React from 'react';
+import { useState } from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
 import Stack from '@mui/material/Stack';
 import ColorModeSelect from '../../../services/themeprovidor/theme/ColorModeSelect';
 import Content from '../../../components/auth/content';
 import AuthForm from '@/app/frontend/components/auth/authForm';
 import { Alert } from '@mui/material';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 export default function Register(props: { disableCustomTheme?: boolean }) {
-
+    const router = useRouter();
+    const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    
     const handleRegisterSubmit = async (formData: Record<string, string>) => {
-        try {
-          const response_register = await fetch(`${process.env.DOMAIN_BASE_URL}/api/${process.env.API_VERSION}/auth/sign-up?onboardingType=invite`, {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_DOMAIN_BASE_URL}/api/auth/sign-up?onboardingType=signup`,
+          {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -21,16 +25,26 @@ export default function Register(props: { disableCustomTheme?: boolean }) {
               email: formData.email,
               password: formData.password,
             }),
-          });
-        
-          } catch (error: any) {
-            throw error;
           }
-      };
+        );
+    
+        const data = await response.json();
+    
+        if (!response.ok) {
+          throw new Error(data.message || "Something went wrong, please try again.");
+        }
+    
+        setAlertMessage({ type: "success", text: "You have successfully registered." });
+        router.push("/login");
+      } catch (error: any) {
+        setAlertMessage({ type: "error", text: error.message });
+      }
+    };
     
 
   return (
     <>
+      {alertMessage && <Alert severity={alertMessage.type}>{alertMessage.text}</Alert>}
       <CssBaseline enableColorScheme />
       <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
       <Stack

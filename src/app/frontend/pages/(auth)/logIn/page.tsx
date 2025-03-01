@@ -1,5 +1,4 @@
 'use client';
-import * as React from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
 import Stack from '@mui/material/Stack';
 import ColorModeSelect from '../../../services/themeprovidor/theme/ColorModeSelect';
@@ -7,21 +6,30 @@ import Content from '../../../components/auth/content';
 import AuthForm from '@/app/frontend/components/auth/authForm';
 import { Alert } from '@mui/material';
 import { signIn, useSession } from 'next-auth/react';
-
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function SignIn(props: { disableCustomTheme?: boolean }) {
   const { data: session } = useSession();
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const router = useRouter();
 
   const handleLoginSubmit = async (formData: Record<string, string>) => {
     try {
       const response = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        redirect: false,
-      });   
+        redirect: false
+      });
+     
+      if (response?.status == 500) {
+        setAlertMessage({ type: "error", text: "Invalid User Name or Password" })
+      } else {
+        router.push('/workspaces');
+      }   
     } catch (error: any) {
-      throw error;
+      setAlertMessage({ type: "error", text: "Internal Server Error" })
     }
   };
 
@@ -29,6 +37,7 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
     <>
       {!session && (
         <>
+          {alertMessage && <Alert severity={alertMessage.type}>{alertMessage.text}</Alert>}
           <CssBaseline enableColorScheme />
           <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
           <Stack

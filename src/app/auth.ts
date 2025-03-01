@@ -85,8 +85,5 @@ const checkUser = async ({ email, password }: Credentials) => {
     org_name: user.organization_name,
     org_role: org_role.name,
   };
-
-  console.log("data -------------->>", data);
-
   return data;
 };
