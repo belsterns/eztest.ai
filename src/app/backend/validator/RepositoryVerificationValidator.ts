@@ -6,8 +6,8 @@ export class RepositoryVerificationValidator {
   async ValidateRepository(body: RepositoryVerification) {
     try {
       const schema = yup.object().shape({
-        host_url: yup.string().optional().nullable().url(),
-        repo_url: yup.string().required().url(),
+        host_url: yup.string().strict().optional().nullable().url(),
+        repo_url: yup.string().strict().required().url(),
       });
 
       await schema.validate(body, { abortEarly: false });
@@ -27,9 +27,9 @@ export class RepositoryVerificationValidator {
   async SaveRepositoryDetails(body: SaveRepositoryDetails) {
     try {
       const schema = yup.object().shape({
-        nocobase_id: yup.string().required(),
-        host_url: yup.string().optional().nullable().url(),
-        repo_url: yup.string().required().url(),
+        nocobase_id: yup.string().strict().required(),
+        host_url: yup.string().strict().optional().nullable().url(),
+        repo_url: yup.string().strict().required().url(),
       });
 
       await schema.validate(body, { abortEarly: false });

@@ -43,11 +43,11 @@ export class StaticMessage {
   static WorkspaceAlreadyExists =
     "A workspace with the same name already exists for the user.";
   static WorkspaceNotFound = "Workspace not found.";
-  static UserWorkspaceNotFound = "User workspace not found.";
-  static WorkspaceCreatedSuccessfully = "A workspace created successfully.";
+  static WorkspaceCreatedSuccessfully = "Workspace created successfully.";
+  static WorkspaceUpdatedSuccessfully = "Workspace updated successfully.";
   static WorkspaceFetchedSuccessfully =
-    "A workspace details fetched successfully.";
-  static WorkspaceDeletedSuccessfully = "A workspace deleted successfully.";
+    "Workspace details fetched successfully.";
+  static WorkspaceDeletedSuccessfully = "Workspace deleted successfully.";
 }
 
 export class OnboardingType {

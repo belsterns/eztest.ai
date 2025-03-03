@@ -41,9 +41,21 @@ export class WorkspaceController {
 
       return {
         message: StaticMessage.WorkspaceCreatedSuccessfully,
-        data: {
-          workspace,
-        },
+        data: workspace,
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async getAllUserWorkspaces(userUuid: string) {
+    try {
+      const isWorkspaceExist =
+        await this.workspaceService.fetchAllUserWorkspaces(userUuid);
+
+      return {
+        message: StaticMessage.WorkspaceFetchedSuccessfully,
+        data: isWorkspaceExist,
       };
     } catch (error: any) {
       throw error;
@@ -52,20 +64,20 @@ export class WorkspaceController {
 
   async getWorkspaceByUser(userUuid: string, workspaceUuid: string) {
     try {
-      const workspace =
-        await this.workspaceService.fetchWorkspaceByWorkspaceUuidAndUserUuid(
-          userUuid,
-          workspaceUuid
-        );
+      const isWorkspaceExist = await this.workspaceService.fetchUserWorkspace(
+        userUuid,
+        workspaceUuid
+      );
 
       return {
         message: StaticMessage.WorkspaceFetchedSuccessfully,
-        data: workspace,
+        data: isWorkspaceExist.workspace,
       };
     } catch (error: any) {
       throw error;
     }
   }
+
   async updateWorkspaceDetails(
     userUuid: string,
     workspaceUuid: string,
@@ -76,6 +88,11 @@ export class WorkspaceController {
 
       await this.workspaceValidator.UpdateWorkspace(body);
 
+      const isWorkspaceExist = await this.workspaceService.fetchUserWorkspace(
+        userUuid,
+        workspaceUuid
+      );
+
       if (name) {
         await this.workspaceService.fetchWorkspaceByNameAndUserUuid(
           userUuid,
@@ -83,22 +100,17 @@ export class WorkspaceController {
         );
       }
 
-      const existingWorkspace =
-        await this.workspaceService.fetchWorkspaceByWorkspaceUuidAndUserUuid(
-          userUuid,
-          workspaceUuid
-        );
+      const { workspace } = isWorkspaceExist;
 
       const updatedWorkspace = await this.workspaceService.updateWorkspace(
-        existingWorkspace.uuid,
-        body
+        workspace.uuid,
+        body,
+        workspace
       );
 
       return {
-        message: StaticMessage.WorkspaceCreatedSuccessfully,
-        data: {
-          updatedWorkspace,
-        },
+        message: StaticMessage.WorkspaceUpdatedSuccessfully,
+        data: updatedWorkspace,
       };
     } catch (error: any) {
       throw error;
@@ -107,12 +119,14 @@ export class WorkspaceController {
 
   async deleteWorkspace(userUuid: string, workspaceUuid: string) {
     try {
-      await this.workspaceService.fetchWorkspaceByWorkspaceUuidAndUserUuid(
+      const {
+        workspace: { uuid },
+      } = await this.workspaceService.fetchUserWorkspace(
         userUuid,
         workspaceUuid
       );
 
-      await this.workspaceService.deleteWorkspace(workspaceUuid);
+      await this.workspaceService.deleteWorkspace(uuid);
 
       return {
         message: StaticMessage.WorkspaceDeletedSuccessfully,

@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: StaticMessage.LoginSuccessfully,
-      data: session,
+      data: null,
     });
   } catch (error: any) {
     const cleanErrorMessage =
