@@ -5,17 +5,19 @@ import Stack from '@mui/material/Stack';
 import ColorModeSelect from '../../../services/themeprovidor/theme/ColorModeSelect';
 import Content from '../../../components/auth/content';
 import AuthForm from '@/app/frontend/components/auth/authForm';
-import { Alert } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useApi } from '@/app/frontend/hooks/useAPICall';
+import BackDropLoader from '../../../elements/loader/backDropLoader';
 
 export default function Register() {
     const router = useRouter();
-    const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const { success, makeApiCall } = useApi();
+    const [loader, setLoader] = useState({
+       pageLoader: false
+    });
 
     const handleRegisterSubmit = async (formData: Record<string, string>) => {
-      try {
+        setLoader((prev) => ({ ...prev, pageLoader: true }));
         await makeApiCall({
           url: '/api/auth/sign-up?onboardingType=signup',
           method: 'POST',
@@ -25,22 +27,22 @@ export default function Register() {
             email: formData.email,
             password: formData.password,
           },
-          isShowAlert: true
+          isShowAlert: true,
+          setIsLoading: setLoader,
+          loader: 'pageLoader'
         });
-      } catch (error: any) {
-        setAlertMessage({ type: "error", text: error.message });
-      }
+       
     };
     
     useEffect(()=> {
        if(success){
         router.push("/workspaces");
        }
-    },[success])
+    },[success,router])
 
   return (
     <>
-      {alertMessage && <Alert severity={alertMessage.type}>{alertMessage.text}</Alert>}
+      <BackDropLoader isLoading={loader.pageLoader}/>
       <CssBaseline enableColorScheme />
       <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
       <Stack
