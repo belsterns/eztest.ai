@@ -8,28 +8,36 @@ import { Alert } from '@mui/material';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useAlertManager } from '@/app/frontend/hooks/useAlertManager';
+import BackDropLoading from '@/app/frontend/elements/loader/backDropLoader';
+import { StaticMessages } from '@/app/frontend/constants/app';
 
 export default function SignIn() {
-  const { data: session } = useSession();
   const errorMessage: string | null = null;
-  const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [alertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const router = useRouter();
+  const { data: session } = useSession();
+  const showAlert = useAlertManager();
+  const [loader,setLoader] = useState(false);
 
   const handleLoginSubmit = async (formData: Record<string, string>) => {
     try {
+      setLoader(true);
       const response = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
         redirect: false
       });
-     
-      if (response?.status == 500) {
-        setAlertMessage({ type: "error", text: "Invalid User Name or Password" })
+      if (response?.error) {
+        showAlert(StaticMessages.InvalidEmailOrPassword, true);
       } else {
+        showAlert(StaticMessages.LoggedInSuccessfully, false);
         router.push('/workspaces');
-      }   
-    } catch (error: any) {
-      setAlertMessage({ type: "error", text: `${error.message}`})
+      }
+    } catch {
+      showAlert(StaticMessages.InternalServerError, true);
+    } finally {
+      setLoader(false); 
     }
   };
 
@@ -37,6 +45,7 @@ export default function SignIn() {
     <>
       {!session && (
         <>
+          <BackDropLoading isLoading={loader}/>
           {alertMessage && <Alert severity={alertMessage.type}>{alertMessage.text}</Alert>}
           <CssBaseline enableColorScheme />
           <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />

@@ -95,25 +95,25 @@ export const dataGridCustomizations: DataGridProComponents<Theme> & DataGridProC
           }),
         },
       }),
-      menuIconButton: ({ theme }) => ({
-        border: 'none',
-        backgroundColor: 'transparent',
-        '&:hover': {
-          backgroundColor: gray[100],
-        },
-        '&:active': {
-          backgroundColor: gray[200],
-        },
-        ...theme.applyStyles('dark', {
-          color: gray[50],
-          '&:hover': {
-            backgroundColor: gray[800],
-          },
-          '&:active': {
-            backgroundColor: gray[900],
-          },
-        }),
-      }),
+      // menuIconButton: ({ theme }) => ({
+      //   border: 'none',
+      //   backgroundColor: 'transparent',
+      //   '&:hover': {
+      //     backgroundColor: gray[100],
+      //   },
+      //   '&:active': {
+      //     backgroundColor: gray[200],
+      //   },
+      //   ...theme.applyStyles('dark', {
+      //     color: gray[50],
+      //     '&:hover': {
+      //       backgroundColor: gray[800],
+      //     },
+      //     '&:active': {
+      //       backgroundColor: gray[900],
+      //     },
+      //   }),
+      // }),
       filterForm: ({ theme }) => ({
         gap: theme.spacing(1),
         alignItems: 'flex-end',

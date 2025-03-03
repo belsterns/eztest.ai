@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import Breadcrumbs, { breadcrumbsClasses } from '@mui/material/Breadcrumbs';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 const StyledBreadcrumbs = styled(Breadcrumbs)(({ theme }) => ({
   margin: theme.spacing(1, 0),
@@ -24,6 +25,8 @@ interface Item {
 
 export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
   const [mounted, setMounted] = useState(false);
+  const {data: session} = useSession();
+  console.log(`session in bc ---> ${JSON.stringify(session)}`)
 
   // Ensure it only renders after mounting to avoid SSR mismatch
   useEffect(() => {
@@ -34,23 +37,37 @@ export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
 
   return (
     <StyledBreadcrumbs
-      aria-label="breadcrumb"
-      separator={<NavigateNextRoundedIcon fontSize="small" />}
+  aria-label="breadcrumb"
+  separator={<NavigateNextRoundedIcon fontSize="small" />}
+>
+  <Link key="workspaces" href={'/workspaces'} passHref>
+    <Typography
+      variant="body1"
+      sx={{
+        cursor: 'pointer',
+        color: 'white',
+        textDecoration: 'none',
+      }}
     >
-       {items.map((item, index) => (
-        <Link key={index} href={item.route} passHref>
-          <Typography
+      {session?.user?.organization_name}
+    </Typography>
+  </Link>
+
+  {items.map((item, index) => (
+    <Link key={index} href={item.route} passHref>
+      <Typography
+            key={index}
             variant="body1"
             sx={{
-              cursor: 'pointer',
-              color: 'white',
+              color: index === items.length - 1 ? 'gray' : 'white',
               textDecoration: 'none',
             }}
           >
             {item.label}
-          </Typography>
-        </Link>
-      ))}
-    </StyledBreadcrumbs>
+      </Typography>
+    </Link>
+    
+  ))}
+</StyledBreadcrumbs>
   );
 }
