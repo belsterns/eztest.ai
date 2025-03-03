@@ -4,6 +4,6 @@ export type CreateWorkspaceRequestDto = {
 };
 
 export type UpdateWorkspaceRequestDto = {
-  name?: string;
-  description?: string;
+  name: string | null;
+  description: string | null;
 };

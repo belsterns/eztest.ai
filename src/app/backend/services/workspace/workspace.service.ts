@@ -4,10 +4,9 @@ import {
   CreateWorkspaceRequestDto,
   UpdateWorkspaceRequestDto,
 } from "../../infrastructure/dtos/WorkspaceRequestDto";
+import { workspaces } from "@prisma/client";
 
 export class WorkspaceService {
-  constructor() {}
-
   async fetchWorkspaceByNameAndUserUuid(
     userUuid: string,
     workspaceName: string
@@ -16,63 +15,81 @@ export class WorkspaceService {
       const existingWorkspace = await prisma.workspaces.findFirst({
         where: {
           name: workspaceName,
-          user_workspaces: {
-            some: {
-              user_uuid: userUuid,
-            },
-          },
+          user_workspaces: { some: { user_uuid: userUuid } },
         },
       });
 
       if (existingWorkspace) {
         throw {
-          statusCode: 404,
+          statusCode: 409,
           message: StaticMessage.WorkspaceAlreadyExists,
-          data: null,
         };
       }
 
       return existingWorkspace;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   }
 
-  async fetchWorkspaceByWorkspaceUuidAndUserUuid(
-    userUuid: string,
-    workspaceUuid: string
-  ) {
+  async fetchWorkspace(workspaceUuid: string) {
     try {
-      const existingWorkspace = await prisma.user_workspaces.findFirst({
-        where: {
-          user_uuid: userUuid,
-          workspace_uuid: workspaceUuid,
+      const workspace = await prisma.workspaces.findUnique({
+        where: { uuid: workspaceUuid },
+      });
+
+      if (!workspace) {
+        throw { statusCode: 404, message: StaticMessage.WorkspaceNotFound };
+      }
+
+      return workspace;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async fetchAllUserWorkspaces(userUuid: string) {
+    try {
+      const userWorkspace = await prisma.user_workspaces.findMany({
+        where: { user_uuid: userUuid },
+        select: {
+          workspace: true,
         },
       });
 
-      if (!existingWorkspace) {
-        throw {
-          statusCode: 404,
-          message: StaticMessage.UserWorkspaceNotFound,
-          data: null,
-        };
+      if (!userWorkspace) {
+        throw { statusCode: 404, message: StaticMessage.WorkspaceNotFound };
       }
 
-      return existingWorkspace;
-    } catch (error: any) {
+      return userWorkspace;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async fetchUserWorkspace(userUuid: string, workspaceUuid: string) {
+    try {
+      const userWorkspace = await prisma.user_workspaces.findFirst({
+        where: { user_uuid: userUuid, workspace_uuid: workspaceUuid },
+        select: {
+          workspace: true,
+        },
+      });
+
+      if (!userWorkspace) {
+        throw { statusCode: 404, message: StaticMessage.WorkspaceNotFound };
+      }
+
+      return userWorkspace;
+    } catch (error) {
       throw error;
     }
   }
 
   async saveWorkspaceDetails(model: CreateWorkspaceRequestDto) {
     try {
-      const { description, name } = model;
-
-      return await prisma.workspaces.create({
-        data: {
-          description,
-          name,
-        },
+      return prisma.workspaces.create({
+        data: { name: model.name, description: model.description },
       });
     } catch (error) {
       throw error;
@@ -81,18 +98,19 @@ export class WorkspaceService {
 
   async updateWorkspace(
     workspaceUuid: string,
-    model: UpdateWorkspaceRequestDto
+    model: UpdateWorkspaceRequestDto,
+    existingWorkspace: workspaces
   ) {
     try {
       const { name, description } = model;
 
       return await prisma.workspaces.update({
+        where: { uuid: workspaceUuid },
         data: {
-          name,
-          description,
+          name: name ?? existingWorkspace.name,
+          description: description ?? existingWorkspace.description,
           updated_at: new Date(),
         },
-        where: { uuid: workspaceUuid },
       });
     } catch (error) {
       throw error;
@@ -101,11 +119,7 @@ export class WorkspaceService {
 
   async deleteWorkspace(workspaceUuid: string) {
     try {
-      return await prisma.workspaces.delete({
-        where: {
-          uuid: workspaceUuid,
-        },
-      });
+      return prisma.workspaces.delete({ where: { uuid: workspaceUuid } });
     } catch (error) {
       throw error;
     }
