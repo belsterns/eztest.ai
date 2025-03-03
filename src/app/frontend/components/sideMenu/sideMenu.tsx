@@ -8,6 +8,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import MenuContent from './menuContent';
 import OptionsMenu from './optionsMenu';
+import { useSession } from 'next-auth/react';
 
 const drawerWidth = 240;
 
@@ -23,6 +24,8 @@ const Drawer = styled(MuiDrawer)({
 });
 
 export default function SideMenu() {
+  const{data: session} = useSession();
+
     return (
       <Drawer
         variant="permanent"
@@ -82,7 +85,7 @@ export default function SideMenu() {
               maxWidth: '100px'
             }}
           >
-            EzTest.AI
+            {session?.user.full_name}
           </Typography>
           <Typography 
             variant="caption" 
@@ -95,7 +98,7 @@ export default function SideMenu() {
               maxWidth: '130px'
             }}
           >
-            eztest.ai@belsterns.com
+             {session?.user.email}
           </Typography>
           </Box>
           <OptionsMenu />

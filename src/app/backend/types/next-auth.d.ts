@@ -20,7 +20,7 @@ declare module "next-auth" {
   }
 
   interface Session extends DefaultSession {
-    user: User;
+    user: User | any;
     data: any;
     auth_info: any;
   }

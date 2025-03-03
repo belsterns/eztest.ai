@@ -4,7 +4,6 @@ import Header from '../../../components/header/header';
 
 export default function Workspace() {
   const breadCrumbItems = [
-    {label:'Belsterns' , route: '/workspaces'},
     {label: 'Workspaces' , route: '/workspaces'}
   ];
 
