@@ -45,7 +45,11 @@ export class RepositoryController {
     }
   }
 
-  async saveRepositoryDetails(body: SaveRepositoryDetails, repoToken: string) {
+  async saveRepositoryDetails(
+    userUuid: string,
+    body: SaveRepositoryDetails,
+    repoToken: string
+  ) {
     try {
       const { host_url, repo_url } = body;
 
@@ -67,7 +71,8 @@ export class RepositoryController {
       const webhookUuid = uuidv4();
 
       const updatedBody = {
-        nocobase_id: body.nocobase_id,
+        user_uuid: userUuid,
+        workspace_uuid: body.workspace_uuid,
         host_url: baseUrl,
         webhook_uuid: webhookUuid,
         remote_origin: hostName,
@@ -91,15 +96,18 @@ export class RepositoryController {
   }
 
   async updateRepositoryDetails(
+    userUuid: string,
     body: SaveRepositoryDetails,
     repoToken: string
   ) {
     try {
-      const { host_url, nocobase_id, repo_url } = body;
+      const { host_url, repo_url } = body;
 
-      await this.repositoryService.fetchRepoDetailsByNocoBaseId(
-        String(nocobase_id)
-      );
+      const repository =
+        await this.repositoryService.fetchRepoDetailsByUserAndWorkspaceUuid(
+          userUuid,
+          body.workspace_uuid
+        );
 
       const {
         hostName,
@@ -119,7 +127,8 @@ export class RepositoryController {
       const webhookUuid = uuidv4();
 
       const updatedBody = {
-        nocobase_id: nocobase_id,
+        user_uuid: userUuid,
+        workspace_uuid: body.workspace_uuid,
         host_url: baseUrl,
         webhook_uuid: webhookUuid,
         remote_origin: hostName,
@@ -128,15 +137,16 @@ export class RepositoryController {
         token: repoToken,
       };
 
-      const repository = await this.repositoryService.updateRepositoryDetails(
-        String(nocobase_id),
-        updatedBody
-      );
+      const updateRepository =
+        await this.repositoryService.updateRepositoryDetails(
+          repository.uuid,
+          updatedBody
+        );
 
       return {
         message: StaticMessage.RepoDetailsUpdatedSuccessfully,
         data: {
-          webhook_url: `${process.env.NEXT_PUBLIC_DOMAIN_BASE_URL}/api/webhook/${repository.webhook_uuid}`,
+          webhook_url: `${process.env.NEXT_PUBLIC_DOMAIN_BASE_URL}/api/webhook/${updateRepository.webhook_uuid}`,
         },
       };
     } catch (error: any) {
@@ -144,12 +154,13 @@ export class RepositoryController {
     }
   }
 
-  async deleteRepository(body: DeleteRepositoryDetails) {
+  async deleteRepository(userUuid: string, body: DeleteRepositoryDetails) {
     try {
-      const nocoBaseId = String(body.nocobase_id);
-
       const repository =
-        await this.repositoryService.fetchRepoDetailsByNocoBaseId(nocoBaseId);
+        await this.repositoryService.fetchRepoDetailsByUserAndWorkspaceUuid(
+          userUuid,
+          body.workspaceUuid
+        );
 
       return await this.repositoryService.deleteRepository(repository.uuid);
     } catch (error: any) {

@@ -27,7 +27,7 @@ export class RepositoryVerificationValidator {
   async SaveRepositoryDetails(body: SaveRepositoryDetails) {
     try {
       const schema = yup.object().shape({
-        nocobase_id: yup.string().strict().required(),
+        workspace_uuid: yup.string().strict().required(),
         host_url: yup.string().strict().optional().nullable().url(),
         repo_url: yup.string().strict().required().url(),
       });

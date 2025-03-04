@@ -1,5 +1,6 @@
 import axios from "axios";
 import prisma from "@/lib/prisma";
+import { StaticMessage } from "../../constants/StaticMessages";
 
 const GITHUB_API_BASE_URL = process.env.GITHUB_API_BASE_URL;
 
@@ -8,7 +9,7 @@ export class FullRepoWebhookService {
     repoFullName: string,
     filePath: string,
     branchName: string,
-    repoToken: string,
+    repoToken: string
   ) {
     try {
       const response = await axios.get(
@@ -18,13 +19,13 @@ export class FullRepoWebhookService {
             Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
-        },
+        }
       );
       return response.data.content; // Return base64 encoded content
     } catch (error: any) {
       console.error(
         `Error fetching content for file '${filePath}':`,
-        error.message,
+        error.message
       );
       throw new Error(`Failed to fetch content for file '${filePath}'.`);
     }
@@ -33,7 +34,7 @@ export class FullRepoWebhookService {
   async fetchAllFiles(
     repoFullName: string,
     branchName: string,
-    repoToken: string,
+    repoToken: string
   ) {
     try {
       const response = await axios.get(
@@ -43,10 +44,10 @@ export class FullRepoWebhookService {
             Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
-        },
+        }
       );
       const files = response.data.tree.filter(
-        (item: any) => item.type === "blob",
+        (item: any) => item.type === "blob"
       ); // Only files, ignore directories
 
       const fileDetails = await Promise.all(
@@ -55,13 +56,13 @@ export class FullRepoWebhookService {
             repoFullName,
             file.path,
             branchName,
-            repoToken,
+            repoToken
           );
           return {
             path: file.path,
             content, // Base64 encoded content
           };
-        }),
+        })
       );
       return fileDetails;
     } catch (error: any) {
@@ -71,16 +72,25 @@ export class FullRepoWebhookService {
   }
 
   async processFullRepo(
+    userUuid: string,
+    repoUuid: string,
     repoFullName: string,
     baseBranch: string,
-    nocobaseId: string,
-    repoToken: string,
+    repoToken: string
   ) {
-    const isInitialized = await prisma.repositories.findUnique({
-      where: { nocobase_id: nocobaseId, is_initialized: true },
+    const repository = await prisma.repositories.findUnique({
+      where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
     });
 
-    if (isInitialized) {
+    if (!repository) {
+      throw {
+        statusCode: 404,
+        message: StaticMessage.RepositoryNotFound,
+        data: null,
+      };
+    }
+
+    if (repository) {
       throw {
         statusCode: 404,
         message:
@@ -100,7 +110,7 @@ export class FullRepoWebhookService {
           Authorization: `token ${repoToken}`,
           Accept: "application/vnd.github.v3+json",
         },
-      },
+      }
     );
 
     const latestCommitSHA = branchResponse.data.object.sha;
@@ -114,7 +124,7 @@ export class FullRepoWebhookService {
           Authorization: `token ${repoToken}`,
           Accept: "application/vnd.github.v3+json",
         },
-      },
+      }
     );
 
     console.log(`Branch '${newBranch}' created successfully.`);
@@ -123,13 +133,13 @@ export class FullRepoWebhookService {
     const allFiles = await this.fetchAllFiles(
       repoFullName,
       baseBranch,
-      repoToken,
+      repoToken
     );
 
     //Langflow implementation
 
     await prisma.repositories.update({
-      where: { nocobase_id: nocobaseId },
+      where: { uuid: repoUuid, user_uuid: userUuid },
       data: { is_initialized: true },
     });
 
@@ -145,7 +155,7 @@ export class FullRepoWebhookService {
     content: string,
     message: string,
     newBranch: string,
-    repoToken: string,
+    repoToken: string
   ) {
     try {
       await axios.put(
@@ -164,13 +174,13 @@ export class FullRepoWebhookService {
             Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
-        },
+        }
       );
       console.log(`File '${path}' created or updated successfully.`);
     } catch (error: any) {
       console.error(
         `Error creating or updating file '${path}':`,
-        error.message,
+        error.message
       );
       throw error;
     }
@@ -182,7 +192,7 @@ export class FullRepoWebhookService {
     newBranch: string,
     title: string,
     body: string,
-    repoToken: string,
+    repoToken: string
   ) {
     try {
       const response = await axios.post(
@@ -193,11 +203,11 @@ export class FullRepoWebhookService {
             Authorization: `token ${repoToken}`,
             Accept: "application/vnd.github.v3+json",
           },
-        },
+        }
       );
 
       console.log(
-        `Pull Request created successfully: ${response.data.html_url}`,
+        `Pull Request created successfully: ${response.data.html_url}`
       );
     } catch (error: any) {
       console.error("Error creating Pull Request:", error.message);

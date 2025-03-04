@@ -48,11 +48,15 @@ export class RepositoryService {
     }
   }
 
-  async fetchRepoDetailsByNocoBaseId(nocobaseId: string) {
+  async fetchRepoDetailsByUserAndWorkspaceUuid(
+    userUuid: string,
+    workspaceUuid: string
+  ) {
     try {
-      const existingRepo = await prisma.repositories.findUnique({
+      const existingRepo = await prisma.repositories.findMany({
         where: {
-          nocobase_id: String(nocobaseId),
+          user_uuid: userUuid,
+          workspace_uuid: workspaceUuid,
         },
       });
 
@@ -64,7 +68,7 @@ export class RepositoryService {
         };
       }
 
-      return existingRepo;
+      return existingRepo[0];
     } catch (error: any) {
       throw error;
     }
@@ -73,8 +77,9 @@ export class RepositoryService {
   async saveRepositoryDetails(model: any) {
     try {
       const {
+        user_uuid,
+        workspace_uuid,
         host_url,
-        nocobase_id,
         organization_name,
         remote_origin,
         repo_name,
@@ -85,7 +90,8 @@ export class RepositoryService {
 
       return await prisma.repositories.create({
         data: {
-          nocobase_id: String(nocobase_id),
+          user_uuid,
+          workspace_uuid,
           host_url,
           webhook_uuid,
           remote_origin,
@@ -99,7 +105,7 @@ export class RepositoryService {
     }
   }
 
-  async updateRepositoryDetails(nocobaseId: string, model: any) {
+  async updateRepositoryDetails(repoUuid: string, model: any) {
     try {
       const {
         host_url,
@@ -121,7 +127,7 @@ export class RepositoryService {
           organization_name,
           updated_at: new Date(),
         },
-        where: { nocobase_id: nocobaseId },
+        where: { uuid: repoUuid },
       });
     } catch (error) {
       throw error;
@@ -130,8 +136,6 @@ export class RepositoryService {
 
   async deleteRepository(repoUuid: string) {
     try {
-      // Check if the repository exists
-
       return await prisma.repositories.delete({
         where: {
           uuid: repoUuid,

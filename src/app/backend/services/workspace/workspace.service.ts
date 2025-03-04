@@ -4,7 +4,6 @@ import {
   CreateWorkspaceRequestDto,
   UpdateWorkspaceRequestDto,
 } from "../../infrastructure/dtos/WorkspaceRequestDto";
-import { workspaces } from "@prisma/client";
 
 export class WorkspaceService {
   async fetchWorkspaceByNameAndUserUuid(
@@ -99,7 +98,7 @@ export class WorkspaceService {
   async updateWorkspace(
     workspaceUuid: string,
     model: UpdateWorkspaceRequestDto,
-    existingWorkspace: workspaces
+    existingWorkspace: any
   ) {
     try {
       const { name, description } = model;
