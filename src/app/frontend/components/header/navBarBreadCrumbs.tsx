@@ -26,7 +26,6 @@ interface Item {
 export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
   const [mounted, setMounted] = useState(false);
   const {data: session} = useSession();
-  console.log(`session in bc ---> ${JSON.stringify(session)}`)
 
   // Ensure it only renders after mounting to avoid SSR mismatch
   useEffect(() => {
