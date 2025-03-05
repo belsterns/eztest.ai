@@ -27,10 +27,15 @@ export class RepositoryService {
     return strategy;
   }
 
-  async fetchRepoDetailsByName(orgName: string, repoName: string) {
+  async fetchRepoDetailsByName(
+    userUuid: string,
+    orgName: string,
+    repoName: string
+  ) {
     try {
       const existingRepo = await prisma.repositories.findFirst({
         where: {
+          user_uuid: userUuid,
           organization_name: orgName,
           repo_name: repoName,
         },
@@ -68,7 +73,35 @@ export class RepositoryService {
         };
       }
 
-      return existingRepo[0];
+      return existingRepo;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async fetchRepoDetails(
+    userUuid: string,
+    workspaceUuid: string,
+    repoUuid: string
+  ) {
+    try {
+      const existingRepo = await prisma.repositories.findUnique({
+        where: {
+          user_uuid: userUuid,
+          workspace_uuid: workspaceUuid,
+          uuid: repoUuid,
+        },
+      });
+
+      if (!existingRepo) {
+        throw {
+          statusCode: 404,
+          message: StaticMessage.RepositoryNotFound,
+          data: null,
+        };
+      }
+
+      return existingRepo;
     } catch (error: any) {
       throw error;
     }

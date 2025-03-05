@@ -2,11 +2,11 @@ import { RepositoryService } from "@/app/backend/services/repositories/repositor
 import { RepositoryVerificationValidator } from "@/app/backend/validator/RepositoryVerificationValidator";
 import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 import { SaveRepositoryDetails } from "@/app/backend/infrastructure/dtos/SaveRepositoryDetails";
-import { DeleteRepositoryDetails } from "@/app/backend/infrastructure/dtos/DeleteRepositoryDetails";
 import { v4 as uuidv4 } from "uuid";
 import { parseRepoUrl } from "@/app/backend/utils/parseUrl";
 import { fetchBaseUrl } from "@/app/backend/utils/fetchBaseUrl";
 import { RepositoryVerification } from "../../infrastructure/dtos/RepositoryVerification";
+import { UpdateRepositoryDetails } from "../../infrastructure/dtos/UpdateRepositoryDetails";
 
 export class RepositoryController {
   private repositoryService: RepositoryService;
@@ -62,6 +62,7 @@ export class RepositoryController {
       await this.repositoryVerificationValidator.SaveRepositoryDetails(body);
 
       await this.repositoryService.fetchRepoDetailsByName(
+        userUuid,
         organization_name,
         repo_name
       );
@@ -87,8 +88,49 @@ export class RepositoryController {
       return {
         message: StaticMessage.RepoDetailsSavedSuccessfully,
         data: {
-          webhook_url: `${process.env.NEXT_PUBLIC_DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
+          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
         },
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async getRepositoryByUserAndWorkspaceUuid(
+    userUuid: string,
+    workspaceUuid: string
+  ) {
+    try {
+      const repository =
+        await this.repositoryService.fetchRepoDetailsByUserAndWorkspaceUuid(
+          userUuid,
+          workspaceUuid
+        );
+
+      return {
+        message: StaticMessage.RepositoriesFetchedSuccessfully,
+        data: repository,
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async getRepository(
+    userUuid: string,
+    workspaceUuid: string,
+    repoUuid: string
+  ) {
+    try {
+      const repository = await this.repositoryService.fetchRepoDetails(
+        userUuid,
+        workspaceUuid,
+        repoUuid
+      );
+
+      return {
+        message: StaticMessage.RepositoryFetchedSuccessfully,
+        data: repository,
       };
     } catch (error: any) {
       throw error;
@@ -97,17 +139,19 @@ export class RepositoryController {
 
   async updateRepositoryDetails(
     userUuid: string,
-    body: SaveRepositoryDetails,
+    workspaceUuid: string,
+    repoUuid: string,
+    body: UpdateRepositoryDetails,
     repoToken: string
   ) {
     try {
       const { host_url, repo_url } = body;
 
-      const repository =
-        await this.repositoryService.fetchRepoDetailsByUserAndWorkspaceUuid(
-          userUuid,
-          body.workspace_uuid
-        );
+      const repository = await this.repositoryService.fetchRepoDetails(
+        userUuid,
+        workspaceUuid,
+        repoUuid
+      );
 
       const {
         hostName,
@@ -115,22 +159,20 @@ export class RepositoryController {
         repoName: repo_name,
       } = parseRepoUrl(repo_url);
 
-      await this.repositoryVerificationValidator.SaveRepositoryDetails(body);
+      await this.repositoryVerificationValidator.UpdateRepositoryDetails(body);
 
       await this.repositoryService.fetchRepoDetailsByName(
+        userUuid,
         organization_name,
         repo_name
       );
 
       const baseUrl = fetchBaseUrl(hostName, host_url);
 
-      const webhookUuid = uuidv4();
-
       const updatedBody = {
         user_uuid: userUuid,
-        workspace_uuid: body.workspace_uuid,
+        workspace_uuid: workspaceUuid,
         host_url: baseUrl,
-        webhook_uuid: webhookUuid,
         remote_origin: hostName,
         repo_name,
         organization_name,
@@ -145,24 +187,30 @@ export class RepositoryController {
 
       return {
         message: StaticMessage.RepoDetailsUpdatedSuccessfully,
-        data: {
-          webhook_url: `${process.env.NEXT_PUBLIC_DOMAIN_BASE_URL}/api/webhook/${updateRepository.webhook_uuid}`,
-        },
+        data: updateRepository,
       };
     } catch (error: any) {
       throw error;
     }
   }
 
-  async deleteRepository(userUuid: string, body: DeleteRepositoryDetails) {
+  async deleteRepository(
+    userUuid: string,
+    workspaceUuid: string,
+    repoUuid: string
+  ) {
     try {
-      const repository =
-        await this.repositoryService.fetchRepoDetailsByUserAndWorkspaceUuid(
-          userUuid,
-          body.workspaceUuid
-        );
+      const repository = await this.repositoryService.fetchRepoDetails(
+        userUuid,
+        workspaceUuid,
+        repoUuid
+      );
 
-      return await this.repositoryService.deleteRepository(repository.uuid);
+      await this.repositoryService.deleteRepository(repository.uuid);
+      return {
+        message: StaticMessage.RepositoryDeletedSuccessfully,
+        data: null,
+      };
     } catch (error: any) {
       throw error;
     }

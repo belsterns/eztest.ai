@@ -63,9 +63,9 @@ model user_workspaces {
 }
 
 model repositories {
-  uuid              String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  uuid              String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_uuid         String   @db.Uuid
-  workspace_uuid    String
+  workspace_uuid    String   @db.Uuid
   host_url          String
   webhook_uuid      String   @unique
   remote_origin     String
