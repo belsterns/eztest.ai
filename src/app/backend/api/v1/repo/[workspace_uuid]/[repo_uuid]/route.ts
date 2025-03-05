@@ -8,8 +8,8 @@ const repositoryController = new RepositoryController();
 
 export async function GET(request: NextRequest, context: any) {
   try {
-    const workspaceUuid = context.params.workspace_uuid;
-    const repoUuid = context.params.repo_uuid;
+    const { workspace_uuid: workspaceUuid } = context.params;
+    const { repo_uuid: repoUuid } = context.params;
 
     if (!workspaceUuid || !repoUuid) {
       throw { statusCode: 400, message: "workspaceUuid or repoUuid required" };
@@ -31,8 +31,8 @@ export async function GET(request: NextRequest, context: any) {
 
 export async function PATCH(request: NextRequest, context: any) {
   try {
-    const workspaceUuid = context.params.workspace_uuid;
-    const repoUuid = context.params.repo_uuid;
+    const { workspace_uuid: workspaceUuid } = context.params;
+    const { repo_uuid: repoUuid } = context.params;
 
     if (!workspaceUuid || !repoUuid) {
       throw {
@@ -70,8 +70,8 @@ export async function PATCH(request: NextRequest, context: any) {
 
 export async function DELETE(request: NextRequest, context: any) {
   try {
-    const workspaceUuid = context.params.workspace_uuid;
-    const repoUuid = context.params.repo_uuid;
+    const { workspace_uuid: workspaceUuid } = context.params;
+    const { repo_uuid: repoUuid } = context.params;
 
     if (!workspaceUuid || !repoUuid) {
       throw {
