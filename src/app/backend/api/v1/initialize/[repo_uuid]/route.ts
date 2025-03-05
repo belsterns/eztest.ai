@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, context: any) {
     );
   }
 
-  const repoUuid = context.params.repo_uuid;
+  const { repo_uuid: repoUuid } = await context.params;
 
   return await controller.handleFullRepoTestInitialization(
     userUuid,
