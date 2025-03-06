@@ -7,13 +7,13 @@ import { useEffect, useState } from 'react';
 import Header from '@/app/frontend/components/header/header';
 import WorkspaceTabs from '@/app/frontend/components/workspaces/workspaceTabs';
 
-export default function Workspace() {
+export default function Workspace({ children }: { children: React.ReactNode }) {
   const pathName = usePathname();
   const { makeApiCall } = useApi();
   const [workspace, setWorkspace] = useState<{ uuid: string; name: string } | null>(null);
 
   const getWorkspaceDetails = async () => {
-    const uuid = pathName.split('/').pop();
+    const uuid = pathName?.split('/')[2];
     if (!uuid) return;
 
     const response = await makeApiCall({
@@ -22,15 +22,19 @@ export default function Workspace() {
     });
 
     if (response?.data) {
-      console.log(`wks data --> ${JSON.stringify(response.data)}`)
       setWorkspace(response.data);
-      document.title = `Workspace - ${response.data.name}`;
     }
   };
+  
+  useEffect(() => {
+    if(workspace){
+      document.title = `Workspace - ${workspace.name}`;
+    }
+  },[workspace]);
 
   useEffect(() => {
     getWorkspaceDetails();
-  });
+  },[]);
 
   const breadCrumbItems = [
     { label: 'Workspaces', route: '/workspaces' },
@@ -40,8 +44,18 @@ export default function Workspace() {
   return (
     <>
       <Header breadCrumbItems={breadCrumbItems} />
-      <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' } }} alignItems="center">
-        <WorkspaceTabs />
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: { sm: "100%", md: "1700px" },
+          height: "auto", 
+          display: "flex",
+          flexDirection: "column", 
+          alignItems: "center",
+        }}
+      >
+          <WorkspaceTabs />
+          {children}
       </Box>
     </>
   );

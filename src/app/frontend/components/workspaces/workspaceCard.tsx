@@ -27,7 +27,7 @@ export default function WorkspaceCard({ workspace, onEdit, onDelete }: CardProps
     };
 
     return (
-        <Link href={`/workspaces/${uuid}`} passHref legacyBehavior>
+        <Link href={`/workspaces/${uuid}/repositories`} passHref legacyBehavior>
             <Card
                 variant="outlined"
                 sx={{

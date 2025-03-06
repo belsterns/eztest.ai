@@ -3,6 +3,7 @@ import { styled } from '@mui/material/styles';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
+import { useRouter } from 'next/navigation';
 
 interface StyledTabsProps {
   children?: React.ReactNode;
@@ -61,22 +62,35 @@ const StyledTab = styled(Tab)(({ theme }) => {
   };
 });
 
+
+
 export default function WorkspaceTabs() {
-  const [value, setValue] = useState(0);
+    const [value, setValue] = useState(0);
+    const router = useRouter();
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
-  };
-
-  return (
-    <Box sx={{ width: '100%', mt: 2 }}>
-      <Box>
-        <StyledTabs value={value} onChange={handleChange}>
-          <StyledTab label="Repositories" />
-          <StyledTab label="Users" />
-        </StyledTabs>
-        <Box sx={{ p: 3 }} />
+    const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
+      setValue(newValue);
+    };
+  
+    const tabs = [
+      { label: "Repositories", route: "repositories" },
+      { label: "Users", route: "users" },
+    ];
+  
+    return (
+      <Box sx={{ width: "100%", mt: 2 }}>
+        <Box>
+          <StyledTabs value={value} onChange={handleChange}>
+            {tabs.map((item, index) => (
+              <StyledTab
+                key={index}
+                label={item.label}
+                onClick={() => router.push(item.route)}
+              />
+            ))}
+          </StyledTabs>
+          <Box sx={{ p: 3 }} />
+        </Box>
       </Box>
-    </Box>
-  );
+    );
 }

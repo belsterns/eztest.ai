@@ -169,8 +169,10 @@ export default function AllWorkspaces(){
            
         <Grid container spacing={4}>
             {loader.allWorkspacesLoader ? (
-                <Grid  display="flex" justifyContent="center" justifySelf="center" alignItems="center" minHeight="50vh">
-                    {/* <AppLoading /> */}
+                <Grid  display="flex" justifyContent="center" justifySelf="center" alignItems="center" minHeight="50vh" maxWidth="100%">
+                    {/* <Grid size={4}>
+                      <AppLoading />
+                    </Grid> */}
                 </Grid>
             ) : (
                 allWorkspaces.map(({ workspace }) => (
