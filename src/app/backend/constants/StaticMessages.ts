@@ -10,6 +10,11 @@ export class StaticMessage {
   static RepositoryNotFound = "Repository not found";
   static RepoDetailsUpdatedSuccessfully =
     "Repository details have been updated saved.";
+  static RepositoryDeletedSuccessfully = "Repository deleted successfully.";
+  static RepositoryFetchedSuccessfully =
+    "Workspace details fetched successfully.";
+  static RepositoriesFetchedSuccessfully =
+    "Repositories fetched successfully.";
   static UserEmailAlreadyExists =
     "An account with this email already exists. Please use a different email.";
   static UserEmailNotFound =

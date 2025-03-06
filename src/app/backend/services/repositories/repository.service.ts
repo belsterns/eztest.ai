@@ -6,6 +6,7 @@ import { GiteaStrategy } from "@/app/backend/infrastructure/strategies/GiteaStra
 import prisma from "@/lib/prisma";
 import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 import { encryptToken } from "@/app/backend/utils/cryptoUtils";
+import { NotFoundException } from "../../utils/exceptions";
 
 export class RepositoryService {
   private strategyMap: Map<string, IRepoStrategy>;
@@ -21,16 +22,44 @@ export class RepositoryService {
 
   getStrategy(remoteOrigin: string): IRepoStrategy {
     const strategy = this.strategyMap.get(remoteOrigin.toLowerCase());
-    if (!strategy) {
-      throw new Error(`Unsupported remote origin: ${remoteOrigin}`);
-    }
+    if (!strategy)
+      throw new NotFoundException(`Unsupported remote origin: ${remoteOrigin}`);
     return strategy;
   }
 
-  async fetchRepoDetailsByName(orgName: string, repoName: string) {
+  async verifyOwnership(
+    userUuid: string,
+    workspaceUuid: string,
+    repoUuid: string
+  ) {
+    const repo = await prisma.repositories.findFirst({
+      where: {
+        uuid: repoUuid,
+        user_uuid: userUuid,
+        workspace_uuid: workspaceUuid,
+      },
+    });
+
+    if (!repo) {
+      throw {
+        statusCode: 404,
+        message: StaticMessage.RepositoryNotFound,
+        data: null,
+      };
+    }
+
+    return repo;
+  }
+
+  async fetchRepoDetailsByName(
+    userUuid: string,
+    orgName: string,
+    repoName: string
+  ) {
     try {
       const existingRepo = await prisma.repositories.findFirst({
         where: {
+          user_uuid: userUuid,
           organization_name: orgName,
           repo_name: repoName,
         },
@@ -48,96 +77,54 @@ export class RepositoryService {
     }
   }
 
-  async fetchRepoDetailsByNocoBaseId(nocobaseId: string) {
-    try {
-      const existingRepo = await prisma.repositories.findUnique({
-        where: {
-          nocobase_id: String(nocobaseId),
-        },
-      });
+  async fetchRepoDetailsByUserAndWorkspaceUuid(
+    userUuid: string,
+    workspaceUuid: string
+  ) {
+    return prisma.repositories.findMany({
+      where: { user_uuid: userUuid, workspace_uuid: workspaceUuid },
+    });
+  }
 
-      if (!existingRepo) {
-        throw {
-          statusCode: 404,
-          message: StaticMessage.RepositoryNotFound,
-          data: null,
-        };
-      }
-
-      return existingRepo;
-    } catch (error: any) {
-      throw error;
-    }
+  async fetchRepoDetails(
+    userUuid: string,
+    workspaceUuid: string,
+    repoUuid: string
+  ) {
+    return this.verifyOwnership(userUuid, workspaceUuid, repoUuid);
   }
 
   async saveRepositoryDetails(model: any) {
     try {
-      const {
-        host_url,
-        nocobase_id,
-        organization_name,
-        remote_origin,
-        repo_name,
-        token,
-        webhook_uuid,
-      } = model;
-      const encryptedToken = encryptToken(token);
-
+      const encryptedToken = encryptToken(model.token);
       return await prisma.repositories.create({
-        data: {
-          nocobase_id: String(nocobase_id),
-          host_url,
-          webhook_uuid,
-          remote_origin,
-          repo_name,
-          token: encryptedToken,
-          organization_name,
-        },
+        data: { ...model, token: encryptedToken },
       });
     } catch (error) {
+      console.error("Error in saveRepositoryDetails:", error);
       throw error;
     }
   }
 
-  async updateRepositoryDetails(nocobaseId: string, model: any) {
+  async updateRepositoryDetails(repoUuid: string, model: any) {
     try {
-      const {
-        host_url,
-        organization_name,
-        remote_origin,
-        repo_name,
-        token,
-        webhook_uuid,
-      } = model;
-      const encryptedToken = encryptToken(token);
+      const encryptedToken = encryptToken(model.token);
 
       return await prisma.repositories.update({
-        data: {
-          host_url,
-          webhook_uuid,
-          remote_origin,
-          repo_name,
-          token: encryptedToken,
-          organization_name,
-          updated_at: new Date(),
-        },
-        where: { nocobase_id: nocobaseId },
+        data: { ...model, token: encryptedToken, updated_at: new Date() },
+        where: { uuid: repoUuid },
       });
     } catch (error) {
+      console.error("Error in updateRepositoryDetails:", error);
       throw error;
     }
   }
 
   async deleteRepository(repoUuid: string) {
     try {
-      // Check if the repository exists
-
-      return await prisma.repositories.delete({
-        where: {
-          uuid: repoUuid,
-        },
-      });
+      return await prisma.repositories.delete({ where: { uuid: repoUuid } });
     } catch (error) {
+      console.error("Error in deleteRepository:", error);
       throw error;
     }
   }
