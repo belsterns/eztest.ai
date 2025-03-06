@@ -79,7 +79,6 @@ export default function WorkspaceTabs() {
   
     return (
       <Box sx={{ width: "100%", mt: 2 }}>
-        <Box>
           <StyledTabs value={value} onChange={handleChange}>
             {tabs.map((item, index) => (
               <StyledTab
@@ -89,8 +88,6 @@ export default function WorkspaceTabs() {
               />
             ))}
           </StyledTabs>
-          <Box sx={{ p: 3 }} />
-        </Box>
       </Box>
     );
 }

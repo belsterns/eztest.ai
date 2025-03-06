@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react';
 import { useApi } from '../../hooks/useAPICall';
 import WorkspaceCard from './workspaceCard';
 import Workspace from '../../pages/(app)/workspaces/page';
-// import AppLoading from '../../elements/loader/loader';
 
 export interface Workspace {
     uuid: string;
@@ -36,9 +35,6 @@ export default function AllWorkspaces(){
     });
     const [editCardData,setEditCardData] =  useState({});
     const { makeApiCall, success } = useApi();
-    const [loader, setLoader] = useState({
-        allWorkspacesLoader: false
-     });
 
     const handleOpenDrawer = () => setDrawerOpen(true); 
     const handleCloseDrawer = () => {
@@ -57,7 +53,7 @@ export default function AllWorkspaces(){
 
     const handleFormSubmit = async (data: Record<string, string>) => {
         if(drawerData.mode === 'Add'){
-            await makeApiCall({
+            const result = await makeApiCall({
                 url: '/api/v1/workspace',
                 method: 'POST',
                 body: {
@@ -66,36 +62,55 @@ export default function AllWorkspaces(){
                 },
                 isShowAlert: true,
             });
+
+            setAllWorkspaces([
+                ...allWorkspaces, 
+                {
+                    workspace: {
+                        uuid: result.data.uuid,
+                        name: result.data.name,
+                        description: result.data.description,
+                        is_active: result.data.is_active,
+                        created_at: result.data.created_at,
+                        updated_at: result.data.updated_at
+                    }
+                }
+            ]);
         }
         else {
             const { uuid, ...updatedFields } = data;
-            await makeApiCall({
+            const result = await makeApiCall({
                 url: `/api/v1/workspace/${uuid}`,  
                 method: "PATCH",
                 body: updatedFields,
                 isShowAlert: true,
             });
+
+            setAllWorkspaces((prevWorkspaces) =>
+                prevWorkspaces.map((workspaceObj) =>
+                    workspaceObj.workspace.uuid === result.data.uuid
+                        ? { workspace: result.data } 
+                        : workspaceObj 
+                )
+            );
+            
         }
         
         if(success) {
             handleCloseDrawer();
         }
-        getAllWorkspaces();
     };
 
     const handleFormUpdate = async (data: Workspace) => {
-        //set edit card data
         setEditCardData({
             uuid: data.uuid,
             name: data.name,
             description: data.description
         });
-        //set drawer data
         setDrawerData({
             mode: 'Edit',
             module: 'Workspace'
         });
-        //handle open drawer
         handleOpenDrawer();
     }
 
@@ -105,7 +120,12 @@ export default function AllWorkspaces(){
             method: "DELETE",
             isShowAlert: true,
         });
-        getAllWorkspaces();
+
+        if (success) {
+            setAllWorkspaces((prevWorkspaces) =>
+                prevWorkspaces.filter((workspaceObj) => workspaceObj.workspace.uuid !== uuid)
+            );
+        }
     }
 
     const getAllWorkspaces = async() => {
@@ -113,8 +133,6 @@ export default function AllWorkspaces(){
             url: '/api/v1/workspace',
             method: 'GET',
             isShowAlert: false,
-            setIsLoading: setLoader,
-            loader: 'allWorkspacesLoader'
         });
 
         if (result?.data) {
@@ -166,28 +184,17 @@ export default function AllWorkspaces(){
             </Button>
         </Grid>
 
-           
         <Grid container spacing={4}>
-            {loader.allWorkspacesLoader ? (
-                <Grid  display="flex" justifyContent="center" justifySelf="center" alignItems="center" minHeight="50vh" maxWidth="100%">
-                    {/* <Grid size={4}>
-                      <AppLoading />
-                    </Grid> */}
+            {allWorkspaces.map(({ workspace }) => (
+                <Grid key={workspace.uuid}>
+                    <WorkspaceCard 
+                      workspace={workspace}   
+                      onEdit={handleFormUpdate} 
+                      onDelete={handleDeleteWorkspace} 
+                    />
                 </Grid>
-            ) : (
-                allWorkspaces.map(({ workspace }) => (
-                    <Grid key={workspace.uuid} >
-                        <WorkspaceCard 
-                            workspace={workspace}   
-                            onEdit={handleFormUpdate} 
-                            onDelete={handleDeleteWorkspace} 
-                        />
-                    </Grid>
-                ))
-            )}
+            ))}
         </Grid>
-
-
 
         <FormDrawer
           open={drawerOpen}
