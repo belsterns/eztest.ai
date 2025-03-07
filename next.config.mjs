@@ -7,7 +7,9 @@ const nextConfig = {
       { source: '/:path*', destination: '/frontend/pages/:path*' },
       { source: '/assets/:path*', destination: '/frontend/assets/:path*' }
     ];
-  }
+  },
+  reactStrictMode: true,
+  output: "standalone",
 };
 
 export default nextConfig;
