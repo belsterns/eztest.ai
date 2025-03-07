@@ -25,9 +25,8 @@ interface Item {
 
 export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
   const [mounted, setMounted] = useState(false);
-  const { data: session } = useSession();
+  const {data: session} = useSession();
   const theme = useTheme();
-
   // Ensure it only renders after mounting to avoid SSR mismatch
   useEffect(() => {
     setMounted(true);
