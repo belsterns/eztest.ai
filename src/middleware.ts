@@ -3,7 +3,7 @@ import { getToken } from "next-auth/jwt";
 
 const frontEndPublicRoutes = ["/login", "/register"];
 const backEndPublicRoutes = ["/auth"];
-const unprotectedRoutes = ["/about"]; // Example unprotected routes
+const unprotectedRoutes = ["/about"]; 
 
 const defaultUnAuthorizedRoute = "/login";
 const defaultAuthorizedRoute = "/workspaces";
@@ -22,6 +22,15 @@ export async function middleware(request: NextRequest) {
     // If the route is unprotected, allow access
     if (isUnprotectedRoute) {
         return NextResponse.next();
+    }
+
+    // Handle the root path `/`
+    if (pathname === "/") {
+        if (token) {
+            return NextResponse.redirect(new URL(defaultAuthorizedRoute, request.url));
+        } else {
+            return NextResponse.redirect(new URL(defaultUnAuthorizedRoute, request.url));
+        }
     }
 
     // If user is NOT authenticated and trying to access a PRIVATE route
