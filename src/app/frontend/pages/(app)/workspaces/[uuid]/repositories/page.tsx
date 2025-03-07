@@ -1,13 +1,14 @@
 'use client'
-import { Typography } from '@mui/material';
+import { Box } from '@mui/material';
+import Repository from '@/app/frontend/components/repositories/repositories';
 
 export default function Repositories() {
 
   return (
     <>
-        <Typography sx={{justifyContent:'center' , alignContent:'center', height:'35rem'}}>
-          REPOSITORIES GRID
-        </Typography>
+      <Box sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' } }}>  
+        <Repository module={'workspace'}/>
+      </Box>
     </>
   );
 }
