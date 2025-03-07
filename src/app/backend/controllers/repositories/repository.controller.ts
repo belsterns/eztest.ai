@@ -84,18 +84,39 @@ export class RepositoryController {
 
       const repository =
         await this.repositoryService.saveRepositoryDetails(updatedBody);
-
-      const { ...repositoryData } = repository;
-
-      const response = {
-        ...repositoryData,
-        webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
-      };
-
-      return {
-        message: StaticMessage.RepoDetailsSavedSuccessfully,
-        data: response,
-      };
+        
+        const {
+          created_at,
+          is_active,
+          is_initialized,
+          remote_origin,
+          updated_at,
+          uuid,
+          webhook_uuid,
+          user_uuid,
+          workspace_uuid,
+        } = repository;
+   
+        const response = {
+          uuid,
+          created_at,
+          host_url: repository.host_url,
+          is_active,
+          is_initialized,
+          organization_name: repository.organization_name,
+          remote_origin,
+          repo_name: repository.repo_name,
+          updated_at,
+          webhook_uuid,
+          user_uuid,
+          workspace_uuid,
+          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
+        };
+   
+        return {
+          message: StaticMessage.RepoDetailsSavedSuccessfully,
+          data: response,
+        };
     } catch (error: any) {
       throw error;
     }
