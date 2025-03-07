@@ -85,7 +85,7 @@ export class RepositoryController {
       const repository =
         await this.repositoryService.saveRepositoryDetails(updatedBody);
 
-      const { token, ...repositoryData } = repository;
+      const { ...repositoryData } = repository;
 
       const response = {
         ...repositoryData,
