@@ -21,6 +21,7 @@ model users {
 
   org_role        org_roles         @relation(fields: [org_role_uuid], references: [uuid], onDelete: Cascade)
   user_workspaces user_workspaces[]
+  repositories    repositories[]
 }
 
 model org_roles {
@@ -43,6 +44,8 @@ model workspaces {
   updated_at  DateTime @default(now()) @updatedAt
 
   user_workspaces user_workspaces[]
+
+  repositories repositories[]
 }
 
 model user_workspaces {
@@ -60,9 +63,9 @@ model user_workspaces {
 }
 
 model repositories {
-  id                Int      @id @default(autoincrement())
-  uuid              String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nocobase_id       String   @unique
+  uuid              String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_uuid         String   @db.Uuid
+  workspace_uuid    String   @db.Uuid
   host_url          String
   webhook_uuid      String   @unique
   remote_origin     String
@@ -73,4 +76,7 @@ model repositories {
   is_initialized    Boolean  @default(false)
   created_at        DateTime @default(now())
   updated_at        DateTime @default(now()) @updatedAt
+
+  user      users      @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
+  workspace workspaces @relation(fields: [workspace_uuid], references: [uuid], onDelete: Cascade)
 }

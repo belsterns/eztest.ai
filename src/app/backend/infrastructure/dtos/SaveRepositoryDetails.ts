@@ -1,5 +1,5 @@
 export type SaveRepositoryDetails = {
-  nocobase_id: string | number;
+  workspace_uuid: string;
   host_url?: string | null;
   repo_url: string;
 };
