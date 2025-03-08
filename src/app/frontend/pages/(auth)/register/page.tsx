@@ -19,7 +19,7 @@ export default function Register() {
     const handleRegisterSubmit = async (formData: Record<string, string>) => {
         setLoader((prev) => ({ ...prev, pageLoader: true }));
         await makeApiCall({
-          url: '/api/auth/sign-up?onboardingType=signup',
+          url: '/api/v1/auth/sign-up?onboardingType=signup',
           method: 'POST',
           body: {
             full_name: formData.fullName,

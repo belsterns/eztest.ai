@@ -1,6 +1,7 @@
 'use client'
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import Header from '../../../components/header/header';
+import AllWorkspaces from '@/app/frontend/components/workspaces/allWorkspaces';
 
 export default function Workspace() {
   const breadCrumbItems = [
@@ -10,10 +11,8 @@ export default function Workspace() {
   return (
     <>
       <Header breadCrumbItems={breadCrumbItems}/>
-      <Box  sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' } }}>  
-        <Typography sx={{justifyContent:'center' , alignContent:'center', height:'40rem'}}>
-          WORKSPACE GRID
-        </Typography>
+      <Box  sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' } }} alignItems="center">  
+        <AllWorkspaces/>
       </Box>
     </>
   );

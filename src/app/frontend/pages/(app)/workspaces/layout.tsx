@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Workspaces",
-  description: "Workspaces Page",
+  title: "All Workspaces",
+  description: "All Workspaces Page",
 };
 
 export default function Layout({

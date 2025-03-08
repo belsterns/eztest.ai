@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { styled } from '@mui/material/styles';
+import { styled, useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import Breadcrumbs, { breadcrumbsClasses } from '@mui/material/Breadcrumbs';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
@@ -26,7 +26,7 @@ interface Item {
 export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
   const [mounted, setMounted] = useState(false);
   const {data: session} = useSession();
-
+  const theme = useTheme();
   // Ensure it only renders after mounting to avoid SSR mismatch
   useEffect(() => {
     setMounted(true);
@@ -36,37 +36,44 @@ export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
 
   return (
     <StyledBreadcrumbs
-  aria-label="breadcrumb"
-  separator={<NavigateNextRoundedIcon fontSize="small" />}
->
-  <Link key="workspaces" href={'/workspaces'} passHref>
-    <Typography
-      variant="body1"
-      sx={{
-        cursor: 'pointer',
-        color: 'white',
-        textDecoration: 'none',
-      }}
+      aria-label="breadcrumb"
+      separator={<NavigateNextRoundedIcon fontSize="small" />}
     >
-      {session?.user?.organization_name}
-    </Typography>
-  </Link>
+      {/* Root Breadcrumb (Organization) */}
+      <Link key="workspaces" href={'/workspaces'} passHref>
+        <Typography
+          variant="body1"
+          sx={{
+            cursor: 'pointer',
+            color: 'gray',
+            textDecoration: 'none',
+          }}
+        >
+          {session?.user?.organization_name}
+        </Typography>
+      </Link>
 
-  {items.map((item, index) => (
-    <Link key={index} href={item.route} passHref>
-      <Typography
-            key={index}
-            variant="body1"
-            sx={{
-              color: index === items.length - 1 ? 'gray' : 'white',
-              textDecoration: 'none',
-            }}
-          >
-            {item.label}
-      </Typography>
-    </Link>
-    
-  ))}
-</StyledBreadcrumbs>
+      {/* Dynamic Breadcrumbs */}
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1;
+        return (
+          <Link key={index} href={item.route} passHref>
+            <Typography
+              variant="body1"
+              sx={{
+                color: isLast
+                  ? theme.palette.mode === 'dark'
+                    ? 'white'
+                    : 'black'
+                  : 'gray',
+                textDecoration: 'none',
+              }}
+            >
+              {item.label}
+            </Typography>
+          </Link>
+        );
+      })}
+    </StyledBreadcrumbs>
   );
 }

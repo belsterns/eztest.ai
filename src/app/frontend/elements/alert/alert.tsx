@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useContext } from 'react';
-import { Snackbar, Alert as MuiAlert, Grid2 } from '@mui/material';
+import { Snackbar, Alert as MuiAlert } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { AlertContext } from '../../contexts/alertContext';
 
 export default function AlertComponent() {
@@ -9,7 +10,7 @@ export default function AlertComponent() {
     useContext(AlertContext)!;
 
   return (
-    <Grid2 container justifyContent="center" alignItems="center">
+    <Grid container justifyContent="center" alignItems="center">
       <Snackbar
         open={alertOpen}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -25,6 +26,6 @@ export default function AlertComponent() {
           {alert}
         </MuiAlert>
       </Snackbar>
-    </Grid2>
+    </Grid>
   );
 }

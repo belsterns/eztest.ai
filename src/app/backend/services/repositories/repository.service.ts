@@ -83,6 +83,21 @@ export class RepositoryService {
   ) {
     return prisma.repositories.findMany({
       where: { user_uuid: userUuid, workspace_uuid: workspaceUuid },
+      select: {
+        uuid: true,
+        user_uuid: true,
+        host_url: true,
+        webhook_uuid: true,
+        remote_origin: true,
+        repo_url: true,
+        organization_name: true,
+        repo_name: true,
+        is_active: true,
+        is_initialized: true,
+        created_at: true,
+        updated_at: true,
+        workspace: true,
+      },
     });
   }
 
@@ -113,6 +128,21 @@ export class RepositoryService {
       return await prisma.repositories.update({
         data: { ...model, token: encryptedToken, updated_at: new Date() },
         where: { uuid: repoUuid },
+        select: {
+          uuid: true,
+          user_uuid: true,
+          host_url: true,
+          webhook_uuid: true,
+          remote_origin: true,
+          repo_url: true,
+          organization_name: true,
+          repo_name: true,
+          is_active: true,
+          is_initialized: true,
+          created_at: true,
+          updated_at: true,
+          workspace: true,
+        },
       });
     } catch (error) {
       console.error("Error in updateRepositoryDetails:", error);
