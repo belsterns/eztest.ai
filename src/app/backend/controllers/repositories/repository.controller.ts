@@ -80,43 +80,44 @@ export class RepositoryController {
         repo_name,
         organization_name,
         token: repoToken,
+        repo_url,
       };
 
       const repository =
         await this.repositoryService.saveRepositoryDetails(updatedBody);
-        
-        const {
-          created_at,
-          is_active,
-          is_initialized,
-          remote_origin,
-          updated_at,
-          uuid,
-          webhook_uuid,
-          user_uuid,
-          workspace_uuid,
-        } = repository;
-   
-        const response = {
-          uuid,
-          created_at,
-          host_url: repository.host_url,
-          is_active,
-          is_initialized,
-          organization_name: repository.organization_name,
-          remote_origin,
-          repo_name: repository.repo_name,
-          updated_at,
-          webhook_uuid,
-          user_uuid,
-          workspace_uuid,
-          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
-        };
-   
-        return {
-          message: StaticMessage.RepoDetailsSavedSuccessfully,
-          data: response,
-        };
+
+      const {
+        created_at,
+        is_active,
+        is_initialized,
+        remote_origin,
+        updated_at,
+        uuid,
+        webhook_uuid,
+        user_uuid,
+        workspace_uuid,
+      } = repository;
+
+      const response = {
+        uuid,
+        created_at,
+        host_url: repository.host_url,
+        is_active,
+        is_initialized,
+        organization_name: repository.organization_name,
+        remote_origin,
+        repo_name: repository.repo_name,
+        updated_at,
+        webhook_uuid,
+        user_uuid,
+        workspace_uuid,
+        webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
+      };
+
+      return {
+        message: StaticMessage.RepoDetailsSavedSuccessfully,
+        data: response,
+      };
     } catch (error: any) {
       throw error;
     }
@@ -133,9 +134,29 @@ export class RepositoryController {
           workspaceUuid
         );
 
+      const data = repository.map((item) => ({
+        uuid: item.uuid,
+        user_uuid: item.user_uuid,
+        workspace_info: {
+          uuid: item.workspace.uuid,
+          name: item.workspace.name,
+        },
+        host_url: item.host_url,
+        webhook_uuid: item.webhook_uuid,
+        webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${item.webhook_uuid}`,
+        remote_origin: item.remote_origin,
+        organization_name: item.organization_name,
+        repo_name: item.repo_name,
+        repo_url: item.repo_url,
+        is_active: item.is_active,
+        is_initialized: item.is_initialized,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      }));
+
       return {
         message: StaticMessage.RepositoriesFetchedSuccessfully,
-        data: repository,
+        data: data,
       };
     } catch (error: any) {
       throw error;
@@ -213,7 +234,25 @@ export class RepositoryController {
 
       return {
         message: StaticMessage.RepoDetailsUpdatedSuccessfully,
-        data: updateRepository,
+        data: {
+          uuid: updateRepository.uuid,
+          user_uuid: updateRepository.user_uuid,
+          workspace_info: {
+            uuid: updateRepository.workspace.uuid,
+            name: updateRepository.workspace.name,
+          },
+          host_url: updateRepository.host_url,
+          webhook_uuid: updateRepository.webhook_uuid,
+          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${updateRepository.webhook_uuid}`,
+          remote_origin: updateRepository.remote_origin,
+          organization_name: updateRepository.organization_name,
+          repo_name: updateRepository.repo_name,
+          repo_url: updateRepository.repo_url,
+          is_active: updateRepository.is_active,
+          is_initialized: updateRepository.is_initialized,
+          created_at: updateRepository.created_at,
+          updated_at: updateRepository.updated_at,
+        },
       };
     } catch (error: any) {
       throw error;
