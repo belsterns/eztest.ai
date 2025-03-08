@@ -5,7 +5,7 @@ import AllWorkspaces from '@/app/frontend/components/workspaces/allWorkspaces';
 
 export default function Workspace() {
   const breadCrumbItems = [
-    {label: 'Workspaces' , route: '/workspaces'}
+    {label: 'All Workspaces' , route: '/workspaces'}
   ];
 
   return (

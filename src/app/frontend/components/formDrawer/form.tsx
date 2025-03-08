@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Box, Button, FormControl, FormLabel, TextField } from "@mui/material";
+import { Box, Button, FormControl, FormLabel, TextField, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 
 interface Field {
   label: string;
   name: string;
   type: string;
   required?: boolean;
+  options?: { label: string; value: string }[]; // Only for select fields
 }
 
 interface FormProps {
@@ -26,13 +27,23 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
     }
   }, [mode, initialValues]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChangeSelectField = (e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>) => {
+    const { name, value } = e.target;
+    if (name) {
+      setFormData({ ...formData, [name]: value as string });
+    }
+  };
+
+  const handleChangeTextField = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+    const { name, value } = e.target;
+    if (name) {
+      setFormData({ ...formData, [name]: value as string });
+    }
   };
 
   const handleSubmit = () => {
     const newErrors: Record<string, string> = {};
-    
+
     fields.forEach(({ name, label, required }) => {
       if (required && !formData[name]) {
         newErrors[name] = `${label} is required`;
@@ -64,21 +75,37 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {fields.map(({ label, name, type, required }) => (
-        <FormControl key={name}>
+      {fields.map(({ label, name, type, required, options }) => (
+        <FormControl key={name} fullWidth>
           <FormLabel>{label}</FormLabel>
-          <TextField
-            id={name}
-            name={name}
-            type={type}
-            required={required}
-            fullWidth
-            variant="outlined"
-            error={!!errors[name]}
-            helperText={errors[name]}
-            value={formData[name] || ""}
-            onChange={handleChange}
-          />
+          {type === "select" && options ? (
+            <Select
+              id={name}
+              name={name}
+              value={formData[name] || ""}
+              onChange={handleChangeSelectField}
+              error={!!errors[name]}
+            >
+              {options.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : (
+            <TextField
+              id={name}
+              name={name}
+              type={type}
+              required={required}
+              fullWidth
+              variant="outlined"
+              error={!!errors[name]}
+              helperText={errors[name]}
+              value={formData[name] || ""}
+              onChange={handleChangeTextField}
+            />
+          )}
         </FormControl>
       ))}
 

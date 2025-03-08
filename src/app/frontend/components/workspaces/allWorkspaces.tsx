@@ -17,7 +17,7 @@ export interface Workspace {
     updated_at: string; 
 };
 
-interface WorkspaceItem {
+export interface WorkspaceItem {
     workspace: Workspace;
 };
 

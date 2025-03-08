@@ -1,19 +1,18 @@
 'use client'
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import Header from '../../../components/header/header';
+import Repository from '@/app/frontend/components/repositories/repositories';
 
 export default function Repositories() {
   const breadCrumbItems = [
-    {label: 'Repositories' , route: '/repositories'}
+    {label: 'All Repositories' , route: '/repositories'}
   ];
    
   return (
     <>
       <Header breadCrumbItems={breadCrumbItems}/>
       <Box  sx={{ width: '100%', maxWidth: { sm: '100%', md: '1700px' } }}>  
-        <Typography sx={{justifyContent:'center' , alignContent:'center', height:'40rem'}}>
-          REPOSITORIES GRID
-        </Typography>
+        <Repository module={'allRepositories'}/>
       </Box>
     </>
   );
