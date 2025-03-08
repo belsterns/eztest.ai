@@ -23,7 +23,6 @@ export default function OptionsMenu() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    console.log(`event.currentTarget => ${event.currentTarget}`);
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {

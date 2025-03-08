@@ -12,9 +12,9 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import { usePathname } from 'next/navigation';
 
 const mainListItems = [
-  { text: 'Workspaces', icon: <WorkspacesIcon />, route: 'workspaces' },
-  { text: 'Repositories', icon: <AccountTreeIcon />, route: 'repositories' },
-  { text: 'Users', icon: <GroupsIcon />, route: 'users' },
+  { text: 'Workspaces', icon: <WorkspacesIcon />, route: '/workspaces' },
+  { text: 'Repositories', icon: <AccountTreeIcon />, route: '/repositories' },
+  { text: 'Users', icon: <GroupsIcon />, route: '/users' },
 ];
 
 // const secondaryListItems = [];
