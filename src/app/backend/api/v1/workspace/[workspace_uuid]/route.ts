@@ -7,7 +7,7 @@ const workspaceController = new WorkspaceController();
 
 export async function GET(request: NextRequest, context: any) {
   try {
-    const workspaceUuid = context.params.workspace_uuid;
+    const { workspace_uuid: workspaceUuid } = await context.params;
     const { userUuid } = await authenticateUser(request);
     const response = await workspaceController.getWorkspaceByUser(
       userUuid,
