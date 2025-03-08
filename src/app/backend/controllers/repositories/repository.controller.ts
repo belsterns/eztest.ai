@@ -7,13 +7,17 @@ import { parseRepoUrl } from "@/app/backend/utils/parseUrl";
 import { fetchBaseUrl } from "@/app/backend/utils/fetchBaseUrl";
 import { RepositoryVerification } from "../../infrastructure/dtos/RepositoryVerification";
 import { UpdateRepositoryDetails } from "../../infrastructure/dtos/UpdateRepositoryDetails";
+import { WorkspaceService } from "@/app/backend/services/workspace/workspace.service";
 
 export class RepositoryController {
   private repositoryService: RepositoryService;
+  private workspaceService: WorkspaceService;
+
   private repositoryVerificationValidator: RepositoryVerificationValidator;
 
   constructor() {
     this.repositoryService = new RepositoryService();
+    this.workspaceService = new WorkspaceService();
     this.repositoryVerificationValidator =
       new RepositoryVerificationValidator();
   }
@@ -169,6 +173,8 @@ export class RepositoryController {
     repoUuid: string
   ) {
     try {
+      await this.workspaceService.fetchWorkspace(workspaceUuid);
+
       const repository = await this.repositoryService.fetchRepoDetails(
         userUuid,
         workspaceUuid,
@@ -177,7 +183,25 @@ export class RepositoryController {
 
       return {
         message: StaticMessage.RepositoryFetchedSuccessfully,
-        data: repository,
+        data: {
+          uuid: repository.uuid,
+          user_uuid: repository.user_uuid,
+          workspace_info: {
+            uuid: repository.workspace.uuid,
+            name: repository.workspace.name,
+          },
+          host_url: repository.host_url,
+          webhook_uuid: repository.webhook_uuid,
+          webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
+          remote_origin: repository.remote_origin,
+          organization_name: repository.organization_name,
+          repo_name: repository.repo_name,
+          repo_url: repository.repo_url,
+          is_active: repository.is_active,
+          is_initialized: repository.is_initialized,
+          created_at: repository.created_at,
+          updated_at: repository.updated_at,
+        },
       };
     } catch (error: any) {
       throw error;
