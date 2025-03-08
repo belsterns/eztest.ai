@@ -67,6 +67,7 @@ model repositories {
   user_uuid         String   @db.Uuid
   workspace_uuid    String   @db.Uuid
   host_url          String
+  repo_url          String   @unique
   webhook_uuid      String   @unique
   remote_origin     String
   organization_name String
