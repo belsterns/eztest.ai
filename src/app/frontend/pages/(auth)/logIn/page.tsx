@@ -4,7 +4,6 @@ import Stack from '@mui/material/Stack';
 import ColorModeSelect from '../../../services/themeprovidor/theme/ColorModeSelect';
 import Content from '../../../components/auth/content';
 import AuthForm from '@/app/frontend/components/auth/authForm';
-import { Alert } from '@mui/material';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -12,9 +11,7 @@ import { useAlertManager } from '@/app/frontend/hooks/useAlertManager';
 import BackDropLoading from '@/app/frontend/elements/loader/backDropLoader';
 import { StaticMessages } from '@/app/frontend/constants/app';
 
-export default function SignIn() {
-  const errorMessage: string | null = null;
-  const [alertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+export default function LogIn() {
   const router = useRouter();
   const { data: session } = useSession();
   const showAlert = useAlertManager();
@@ -46,7 +43,6 @@ export default function SignIn() {
       {!session && (
         <>
           <BackDropLoading isLoading={loader}/>
-          {alertMessage && <Alert severity={alertMessage.type}>{alertMessage.text}</Alert>}
           <CssBaseline enableColorScheme />
           <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
           <Stack
@@ -121,12 +117,6 @@ export default function SignIn() {
                 />
               </Stack>
             </Stack>
-            {/* Display error message */}
-            {errorMessage && (
-              <Alert severity="error" color="error" sx={{ mt: 2, mx: "auto", width: "80%" }}>
-                {errorMessage}
-              </Alert>
-            )}
           </Stack>
         </>
       )}
