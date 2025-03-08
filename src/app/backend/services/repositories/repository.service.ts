@@ -38,6 +38,9 @@ export class RepositoryService {
         user_uuid: userUuid,
         workspace_uuid: workspaceUuid,
       },
+      include: {
+        workspace: true,
+      },
     });
 
     if (!repo) {
