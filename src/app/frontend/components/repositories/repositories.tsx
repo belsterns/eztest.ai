@@ -2,21 +2,36 @@ import Grid from '@mui/material/Grid2';
 import { Button, Typography } from '@mui/material';
 import AddIcon from "@mui/icons-material/Add";
 import FormDrawer from "../formDrawer/drawer";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApi } from '../../hooks/useAPICall';
 import { usePathname } from 'next/navigation';
 import { WorkspaceItem } from '../workspaces/allWorkspaces';
 import { useAlertManager } from '../../hooks/useAlertManager';
+import BackDropLoader from '../../elements/loader/backDropLoader';
+import RepoTable from './repoTable';
 
 export interface Repository {
     uuid: string;
-    name: string;
-    description: string;
+    user_uuid: string;
+    repo_url: string;
+    workspace_info: {
+        uuid: string;
+        name: string;
+    };
+    token: string;
+    host_url: string;
+    webhook_uuid: string;
+    webhook_url: string;
+    remote_origin: string;
+    organization_name: string;
+    repo_name: string;
     is_active: boolean;
-    created_at: string;  
-    updated_at: string; 
-};
+    is_initialized: boolean;
+    created_at: string;
+    updated_at: string;
+}
 
+  
 interface DrawerData {
     mode: "Add" | "Edit";
     module: "Repository";
@@ -43,6 +58,7 @@ interface props {
 export default function Repositories({module}: props){
     const pathName = usePathname();
     const [workspaceList, setWorkspaceList] = useState<WorkspaceListItem[]>([]);
+    const [repositories,setRepositories] = useState<Repository[]>([]);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] =useState<DrawerData>({
         mode: "Add",
@@ -50,7 +66,7 @@ export default function Repositories({module}: props){
     });
     const [editRepoData,setEditRepoData] =  useState({});
     const workspace_uuid = pathName.split('/')[2];
-    const { makeApiCall } = useApi();
+    const { makeApiCall, success } = useApi();
     const showAlert = useAlertManager();
 
     const handleOpenDrawer = () => setDrawerOpen(true); 
@@ -59,21 +75,27 @@ export default function Repositories({module}: props){
             mode: "Add",
             module: "Repository",
         });
+        setFormFields([
+            { label: "Repository URL", name: "repo_url", type: "url", required: true },
+            { label: "Personal Access Token", name: "token", type: "string", required: true },
+        ]);
         setEditRepoData({});
         setDrawerOpen(false);
     }
     const [formFields, setFormFields] = useState<Field[]>([
         { label: "Repository URL", name: "repo_url", type: "url", required: true },
-        { label: "Personal Access Token", name: "repo_pat", type: "string", required: true },
+        { label: "Personal Access Token", name: "token", type: "string", required: true },
     ]);
+    const [loader, setLoader] = useState({
+        pageLoader: false
+    });
 
     const handleFormSubmit = async (data: Record<string, string>) => {
-        console.log(`repo submitted data ---> ${JSON.stringify(data)}`);
         if(drawerData.mode === 'Add'){
-            await makeApiCall({
+            const result = await makeApiCall({
                 url: '/api/v1/repo',
                 headers: {
-                   "x-origin-token": `${data.repo_pat}`
+                   "x-origin-token": `${data.token}`
                 },
                 method: 'POST',
                 body: {
@@ -82,8 +104,50 @@ export default function Repositories({module}: props){
                 },
                 isShowAlert: true,
             });
+
+            setRepositories([...repositories,result.data]);
+        }
+        else {
+            await makeApiCall({
+                url: '/api/v1/repo',
+                method: 'PATCH',
+                body: {
+                    workspace_uuid: workspace_uuid ? workspace_uuid : data.workspace_uuid,
+                    repo_url: data.repo_url
+                },
+                isShowAlert: true,
+            });
+            
+            if (success) {
+                setRepositories((prev) =>
+                    prev.map((repo) =>
+                        repo.uuid === data.uuid ? { ...repo, repo_url: data.repo_url } : repo
+                    )
+                );
+            }
         }
        
+    }
+
+    const repoValidate = async (data: Record<string, string>) => {
+        await makeApiCall({
+            url: '/api/v1/repo/validate',
+            headers: {
+               "x-origin-token": `${data.token}`
+            },
+            method: 'POST',
+            body: {
+                repo_url: data.repo_url
+            },
+            isShowAlert: false
+        });
+        if(success) {
+          handleFormSubmit(data);
+        }
+        else {
+            showAlert("Repository validation failed!", true);
+            return null;
+        }
     }
 
     const handleAddRepo = async () => {
@@ -138,8 +202,77 @@ export default function Repositories({module}: props){
         handleOpenDrawer();
     };
 
+    const handleEditRepo = async (data: Repository) => {
+        setFormFields([
+            { label: "Repository URL", name: "repo_url", type: "url", required: true },
+        ]);
+    
+        setEditRepoData({
+            repo_url: data.repo_url,
+        });
+    
+        setDrawerData({
+            mode: "Edit",
+            module: "Repository",
+        });
+    
+        handleOpenDrawer();
+    };
+
+    const handleDeleteRepo = async (data: Repository) => {
+        await makeApiCall({
+            url: `/api/v1/repo/${data.workspace_info.uuid}/${data.uuid}`,
+            method: 'DELETE',
+            isShowAlert: true
+        });
+        if (success) {
+            setRepositories((prevRepos) =>
+                prevRepos.filter((repoObj) => repoObj.uuid !== data.uuid)
+            );
+        }
+    }
+
+    const handleInitRepo = async (data: Repository) => {
+        const result = await makeApiCall({
+            url: `/api/v1/initialize/${data.uuid}`,
+            method: 'POST',
+            headers: {
+                "x-origin-token" : `${data.token}`
+            },
+            body: {
+                "repo_url": data.repo_url
+            },
+            isShowAlert: true
+        });
+
+        if (result) {
+            setRepositories((prevRepos) =>
+              prevRepos.map((repo) =>
+                repo.uuid === data.uuid ? { ...repo, is_initialized: true } : repo
+              )
+            );
+        }
+    }
+
+    const getRepositories = async() => {
+        const result = await makeApiCall({
+            url: `/api/v1/workspace/${workspace_uuid}/repo`,
+            method: 'GET',
+            setIsLoading: setLoader,
+            loader: 'pageLoader'
+        });
+
+        setRepositories(result.data); 
+    }
+
+    useEffect(() => {
+       getRepositories();
+       // eslint-disable-next-line
+    },[])
+
     return(
         <>
+        <BackDropLoader isLoading={loader.pageLoader}/>
         <Grid
             container
             sx={{ width: "100%", position: "relative" }}
@@ -183,7 +316,11 @@ export default function Repositories({module}: props){
             >
                 <AddIcon />
             </Button>
-            </Grid>
+        </Grid>
+
+        <Grid container justifyContent={'center'} alignContent={'center'}>
+           <RepoTable data={repositories} module={workspace_uuid ? 'workspace' : 'allRepositories'} onEdit={handleEditRepo} onDelete={handleDeleteRepo} onInit={handleInitRepo}/>
+        </Grid>
 
         <FormDrawer
           open={drawerOpen}
@@ -192,7 +329,7 @@ export default function Repositories({module}: props){
           mode={drawerData.mode}
           fields={formFields}
           initialValues={editRepoData}
-          onSubmit={handleFormSubmit}
+          onSubmit={repoValidate}
         />
 
         </>

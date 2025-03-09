@@ -142,6 +142,7 @@ export default function AllWorkspaces(){
 
     useEffect(() => {
         getAllWorkspaces();
+        // eslint-disable-next-line
     },[]);
 
     return(

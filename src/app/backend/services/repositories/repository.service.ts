@@ -89,6 +89,7 @@ export class RepositoryService {
       select: {
         uuid: true,
         user_uuid: true,
+        token:true,
         host_url: true,
         webhook_uuid: true,
         remote_origin: true,
