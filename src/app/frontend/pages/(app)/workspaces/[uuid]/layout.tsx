@@ -10,7 +10,7 @@ import WorkspaceTabs from '@/app/frontend/components/workspaces/workspaceTabs';
 export default function Workspace({ children }: { children: React.ReactNode }) {
   const pathName = usePathname();
   const { makeApiCall } = useApi();
-  const [workspace, setWorkspace] = useState<{ uuid: string; name: string } | null>(null);
+  const [workspace, setWorkspace] = useState<{ uuid: string; name: string }>({uuid:"",name:""});
 
   const getWorkspaceDetails = async () => {
     const uuid = pathName?.split('/')[2];
@@ -21,19 +21,20 @@ export default function Workspace({ children }: { children: React.ReactNode }) {
       method: 'GET',
     });
 
-    if (response?.data) {
-      setWorkspace(response.data);
-    }
+    setWorkspace({
+      uuid: response.data.uuid || "",
+      name: response.data.name || ""
+    });
+
   };
   
   useEffect(() => {
-    if(workspace){
       document.title = `Workspace - ${workspace.name}`;
-    }
   },[workspace]);
 
   useEffect(() => {
     getWorkspaceDetails();
+    // eslint-disable-next-line
   },[]);
 
   const breadCrumbItems = [
