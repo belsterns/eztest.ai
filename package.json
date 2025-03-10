@@ -2,6 +2,9 @@
   "name": "eztest-ai",
   "version": "0.1.0",
   "private": true,
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -13,6 +16,7 @@
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@faker-js/faker": "^9.6.0",
     "@mui/icons-material": "^6.4.5",
     "@mui/material": "^6.4.5",
     "@mui/material-nextjs": "^6.4.3",
