@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { faker } from "@faker-js/faker";
 import * as bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
 
 const prisma = new PrismaClient();
 
@@ -53,7 +54,7 @@ export async function createUsersWithWorkspacesAndRepositories() {
         });
 
         for (let k = 0; k < repositorySize; k++) {
-          const repo_url = "https://github.com/anand-belsterns/nodejs-tasks/";
+          const repo_url = `https://github.com/org-name/repo-name-${i}-${j}-${k}`;
 
           const {
             hostName,
@@ -66,8 +67,8 @@ export async function createUsersWithWorkspacesAndRepositories() {
               user_uuid: user.uuid,
               workspace_uuid: workspace.uuid,
               host_url: process.env.GITHUB_API_BASE_URL!,
-              repo_url: faker.string.uuid(),
-              webhook_uuid: faker.string.uuid(),
+              repo_url,
+              webhook_uuid: uuidv4(),
               remote_origin: hostName,
               organization_name,
               repo_name,
