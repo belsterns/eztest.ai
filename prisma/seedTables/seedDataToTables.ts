@@ -53,24 +53,24 @@ export async function createUsersWithWorkspacesAndRepositories() {
         });
 
         for (let k = 0; k < repositorySize; k++) {
-          // const repo_url = "https://github.com/anand-belsterns/nodejs-tasks/";
+          const repo_url = "https://github.com/anand-belsterns/nodejs-tasks/";
 
-          // const {
-          //   hostName,
-          //   orgName: organization_name,
-          //   repoName: repo_name,
-          // } = parseRepoUrl(repo_url);
+          const {
+            hostName,
+            orgName: organization_name,
+            repoName: repo_name,
+          } = parseRepoUrl(repo_url);
 
-          const repository = await prisma.repositories.create({
+          await prisma.repositories.create({
             data: {
               user_uuid: user.uuid,
               workspace_uuid: workspace.uuid,
-              host_url: "https://api.github.com",
+              host_url: process.env.GITHUB_API_BASE_URL!,
               repo_url: faker.string.uuid(),
               webhook_uuid: faker.string.uuid(),
-              remote_origin: "github",
-              organization_name: "anand-belsters",
-              repo_name: "nodejs-tasks",
+              remote_origin: hostName,
+              organization_name,
+              repo_name,
               token: faker.string.uuid(),
             },
           });
@@ -83,4 +83,23 @@ export async function createUsersWithWorkspacesAndRepositories() {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+function parseRepoUrl(url: string): any {
+  const match = url.match(/https?:\/\/(.*?)\/(.*?)\/(.*)/);
+  if (!match) return null;
+
+  let host = match[1];
+  const org = match[2];
+  const repo = match[3];
+
+  if (host.includes("github.com")) {
+    host = "github";
+  } else if (host.includes("gitlab.com")) {
+    host = "gitlab";
+  } else {
+    host = "gitea";
+  }
+
+  return { hostName: host, orgName: org, repoName: repo };
 }
