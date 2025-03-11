@@ -23,7 +23,9 @@ export class GitLabProvider implements GitProvider {
 
       if (!response.ok)
         throw new Error(`Failed to fetch file content: ${response.statusText}`);
-      return await response.text();
+      const fileContent = await response.text();
+
+      return Buffer.from(fileContent, "utf-8").toString("base64");
     } catch (error: any) {
       console.error(
         `Error fetching content for file '${filePath}':`,
@@ -65,7 +67,6 @@ export class GitLabProvider implements GitProvider {
     newBranch: string
   ): Promise<void> {
     try {
-        console.log(repoFullName)
       const response = await fetch(
         `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches`,
         {
@@ -78,14 +79,13 @@ export class GitLabProvider implements GitProvider {
         }
       );
 
-      console.log(await response.json())
+      console.log(await response.json());
 
       // if (!response.ok)
       //   throw new Error(`Failed to create branch: ${response.statusText}`);
 
       console.log(`Branch '${newBranch}' created successfully.`);
     } catch (err) {
-      console.log("error----->", err);
       throw err;
     }
   }
