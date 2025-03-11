@@ -5,7 +5,6 @@ import { SaveRepositoryDetails } from "@/app/backend/infrastructure/dtos/SaveRep
 import { v4 as uuidv4 } from "uuid";
 import { parseRepoUrl } from "@/app/backend/utils/parseUrl";
 import { fetchBaseUrl } from "@/app/backend/utils/fetchBaseUrl";
-import { RepositoryVerification } from "../../infrastructure/dtos/RepositoryVerification";
 import { UpdateRepositoryDetails } from "../../infrastructure/dtos/UpdateRepositoryDetails";
 import { WorkspaceService } from "@/app/backend/services/workspace/workspace.service";
 
@@ -22,29 +21,22 @@ export class RepositoryController {
       new RepositoryVerificationValidator();
   }
 
-  async findRepositoryDetails(body: RepositoryVerification, repoToken: string) {
+  async verifyRepository(
+    hostName: string,
+    baseUrl: string,
+    orgName: string,
+    repoName: string,
+    repoToken: string
+  ) {
     try {
-      await this.repositoryVerificationValidator.ValidateRepository(body);
-
-      const { host_url, repo_url } = body;
-
-      const { hostName, orgName, repoName } = parseRepoUrl(repo_url);
-
-      const baseUrl = fetchBaseUrl(hostName, host_url);
-
       const strategy = this.repositoryService.getStrategy(hostName);
-      const response = await strategy.findRepositoryDetails(
+      return await strategy.findRepositoryDetails(
         baseUrl,
         orgName,
         repoName,
         repoToken
       );
-
-      return {
-        message: StaticMessage.RepositoryVerifiedSuccessfully,
-        data: response,
-      };
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   }
@@ -55,40 +47,46 @@ export class RepositoryController {
     repoToken: string
   ) {
     try {
-      const { host_url, repo_url } = body;
-
-      const {
-        hostName,
-        orgName: organization_name,
-        repoName: repo_name,
-      } = parseRepoUrl(repo_url);
-
       await this.repositoryVerificationValidator.SaveRepositoryDetails(body);
 
-      await this.repositoryService.fetchRepoDetailsByName(
-        userUuid,
-        organization_name,
-        repo_name
-      );
-
+      const { host_url, repo_url, workspace_uuid } = body;
+      const { hostName, orgName, repoName } = parseRepoUrl(repo_url);
       const baseUrl = fetchBaseUrl(hostName, host_url);
 
-      const webhookUuid = uuidv4();
+      // Verify repository existence
+      await this.verifyRepository(
+        hostName,
+        baseUrl,
+        orgName,
+        repoName,
+        repoToken
+      );
 
-      const updatedBody = {
+      // Ensure workspace exists
+      await this.workspaceService.fetchWorkspace(workspace_uuid);
+
+      // Fetch repository details
+      await this.repositoryService.fetchRepoDetailsByName(
+        userUuid,
+        orgName,
+        repoName
+      );
+
+      // Prepare repository details
+      const repositoryData = {
         user_uuid: userUuid,
-        workspace_uuid: body.workspace_uuid,
+        workspace_uuid,
         host_url: baseUrl,
-        webhook_uuid: webhookUuid,
+        webhook_uuid: uuidv4(),
         remote_origin: hostName,
-        repo_name,
-        organization_name,
+        repo_name: repoName,
+        organization_name: orgName,
         token: repoToken,
         repo_url,
       };
 
       const repository =
-        await this.repositoryService.saveRepositoryDetails(updatedBody);
+        await this.repositoryService.saveRepositoryDetails(repositoryData);
 
       const {
         created_at,
@@ -99,13 +97,12 @@ export class RepositoryController {
         uuid,
         webhook_uuid,
         user_uuid,
-        workspace_uuid,
       } = repository;
 
       const response = {
         uuid,
         created_at,
-        repo_url:repo_url,
+        repo_url: repo_url,
         host_url: repository.host_url,
         is_active,
         is_initialized,
@@ -118,17 +115,16 @@ export class RepositoryController {
         workspace_uuid,
         webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
       };
-
       return {
         message: StaticMessage.RepoDetailsSavedSuccessfully,
         data: response,
       };
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   }
 
-  async  getRepositoryByUserAndWorkspaceUuid(
+  async getRepositoryByUserAndWorkspaceUuid(
     userUuid: string,
     workspaceUuid: string
   ) {
@@ -146,7 +142,7 @@ export class RepositoryController {
           uuid: item.workspace.uuid,
           name: item.workspace.name,
         },
-        token:item.token,
+        token: item.token,
         host_url: item.host_url,
         webhook_uuid: item.webhook_uuid,
         webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${item.webhook_uuid}`,

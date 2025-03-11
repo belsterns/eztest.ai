@@ -5,15 +5,11 @@ import { handleError } from "@/app/backend/utils/errorHandler";
 
 const workspaceController = new WorkspaceController();
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const { userUuid } = await authenticateUser(request);
-    const body = await request.json();
 
-    const response = await workspaceController.saveWorkspaceDetails(
-      userUuid,
-      body
-    );
+    const response = await workspaceController.getAllUserWorkspaces(userUuid);
 
     return NextResponse.json(response, { status: 200 });
   } catch (error: any) {
