@@ -36,7 +36,7 @@ export class GitHubProvider implements GitProvider {
   async fetchModifiedFiles(
     repoFullName: string,
     branchName: string,
-    changedFiles: any
+    changedFiles: { filename: string; status: string }[]
   ): Promise<any[]> {
     const files = [];
 
