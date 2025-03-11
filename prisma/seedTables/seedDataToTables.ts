@@ -7,6 +7,36 @@ const prisma = new PrismaClient();
 
 export async function createUsersWithWorkspacesAndRepositories() {
   try {
+    let orgRoles = await prisma.org_roles.findMany();
+    if (!orgRoles.length) {
+      console.log("🔄 Creating default organization roles...");
+
+      await prisma.org_roles.createMany({
+        data: [
+          {
+            uuid: uuidv4(),
+            name: "Super Admin",
+            description: "Has full access to all system functionalities",
+          },
+          {
+            uuid: uuidv4(),
+            name: "Workspace Admin",
+            description: "Manages workspace settings and users",
+          },
+          {
+            uuid: uuidv4(),
+            name: "Workspace Member",
+            description: "Has limited access within the workspace",
+          },
+        ],
+        skipDuplicates: true,
+      });
+
+      orgRoles = await prisma.org_roles.findMany();
+
+      console.log("✅ Default roles created:", orgRoles);
+    }
+
     await prisma.users.deleteMany();
     await prisma.workspaces.deleteMany();
     await prisma.user_workspaces.deleteMany();
@@ -20,9 +50,11 @@ export async function createUsersWithWorkspacesAndRepositories() {
     console.log("🔄 Seeding users, workspaces, and repositories...");
 
     const roles = {
-      superAdmin: "d8925dae-641b-4744-8d62-7245261285c7",
-      workspaceAdmin: "246816b0-7e6c-48d0-86b1-dace2f455c3f",
-      workspaceMember: "0542aa8d-990a-4cd5-a59d-e44a1694d5dc",
+      superAdmin: orgRoles.find((role) => role.name === "Super Admin")?.uuid!,
+      workspaceAdmin: orgRoles.find((role) => role.name === "Workspace Admin")
+        ?.uuid!,
+      workspaceMember: orgRoles.find((role) => role.name === "Workspace Member")
+        ?.uuid!,
     };
 
     for (let i = 0; i < userSize; i++) {
