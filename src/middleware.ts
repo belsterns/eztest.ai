@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 const frontEndPublicRoutes = ["/login", "/register"];
-const backEndPublicRoutes = ["/auth"];
+const backEndPublicRoutes = ["/api/v1/auth/sign-up"];
 const unprotectedRoutes = ["/about"]; 
 
 const defaultUnAuthorizedRoute = "/login";
