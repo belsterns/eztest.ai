@@ -33,13 +33,12 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 
 interface RepoTableProps {
   data: Repo[];
-  module: "allRepositories" | "workspace";
   onEdit?: (data: Repo) => void;
   onDelete?: (data: Repo) => void;
   onInit?: (data: Repo) => void;
 }
 
-export default function RepoTable({ data, module, onEdit, onDelete, onInit }: RepoTableProps) {
+export default function RepoTable({ data, onEdit, onDelete, onInit }: RepoTableProps) {
 
   const theme = useTheme(); 
   if (data.length === 0) {
@@ -79,7 +78,6 @@ export default function RepoTable({ data, module, onEdit, onDelete, onInit }: Re
           <TableRow>
             <StyledTableCell sx={{ width: "20%" }}>Repository Name</StyledTableCell>
             <StyledTableCell sx={{ width: "25%" }}>Repository URL</StyledTableCell>
-            {module === "allRepositories" && <StyledTableCell sx={{ width: "15%" }}>Workspace</StyledTableCell>}
             <StyledTableCell sx={{ width: "15%" }}>Webhook</StyledTableCell>
             <StyledTableCell sx={{ width: "10%" }}>Host</StyledTableCell>
             <StyledTableCell sx={{ width: "10%" }}>Initialized</StyledTableCell>
@@ -91,9 +89,6 @@ export default function RepoTable({ data, module, onEdit, onDelete, onInit }: Re
             <StyledTableRow key={repo.uuid}>
               <StyledTableCell>{repo.repo_name || "-"}</StyledTableCell>
               <StyledTableCell>{repo.repo_url || "-"}</StyledTableCell>
-              {module === "allRepositories" && (
-                <StyledTableCell>{repo.workspace_info?.name || "-"}</StyledTableCell>
-              )}
               <StyledTableCell>{repo.webhook_url || "-"}</StyledTableCell>
               <StyledTableCell>{repo.remote_origin || "-"}</StyledTableCell>
               <StyledTableCell>{repo.is_initialized ? "Yes" : "No"}</StyledTableCell>

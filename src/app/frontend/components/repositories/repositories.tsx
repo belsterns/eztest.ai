@@ -5,7 +5,6 @@ import FormDrawer from "../formDrawer/drawer";
 import { useEffect, useState } from 'react';
 import { useApi } from '../../hooks/useAPICall';
 import { usePathname } from 'next/navigation';
-import { WorkspaceItem } from '../workspaces/allWorkspaces';
 import { useAlertManager } from '../../hooks/useAlertManager';
 import BackDropLoader from '../../elements/loader/backDropLoader';
 import RepoTable from './repoTable';
@@ -37,11 +36,6 @@ interface DrawerData {
     module: "Repository";
 }
 
-interface WorkspaceListItem {
-    label: string,
-    value: string
-}
-
 interface Field {
     label: string;
     name: string;
@@ -57,7 +51,6 @@ interface props {
 
 export default function Repositories({module}: props){
     const pathName = usePathname();
-    const [workspaceList, setWorkspaceList] = useState<WorkspaceListItem[]>([]);
     const [repositories,setRepositories] = useState<Repository[]>([]);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerData, setDrawerData] =useState<DrawerData>({
@@ -151,54 +144,6 @@ export default function Repositories({module}: props){
     }
 
     const handleAddRepo = async () => {
-        if (module === "workspace") {
-            handleOpenDrawer();
-            return;
-        }
-    
-        // Check if workspaces are already in state
-        if (workspaceList.length === 0) {
-            const result = await makeApiCall({
-                url: "/api/v1/workspace",
-                method: "GET",
-            });
-    
-            if (!result.data || result.data.length === 0) {
-                showAlert("Need a workspace to add a repository!", false);
-                return;
-            }
-    
-            // Update workspace list state
-            const newWorkspaceList: WorkspaceListItem[] = result.data.map(
-                ({ workspace }: WorkspaceItem) => ({
-                    label: workspace.name,
-                    value: workspace.uuid,
-                })
-            );
-    
-            await setWorkspaceList(newWorkspaceList);
-        }
-    
-        // Add workspace dropdown field only if it doesn't exist already
-        setFormFields((prevFields) => {
-            const alreadyHasWorkspaceField = prevFields.some(
-                (field) => field.name === "workspace_uuid"
-            );
-    
-            if (alreadyHasWorkspaceField) return prevFields;
-    
-            return [
-                ...prevFields,
-                {
-                    label: "Workspace",
-                    name: "workspace_uuid",
-                    type: "select",
-                    required: true,
-                    options: workspaceList,
-                },
-            ];
-        });
-    
         handleOpenDrawer();
     };
 
@@ -319,7 +264,7 @@ export default function Repositories({module}: props){
         </Grid>
 
         <Grid container justifyContent={'center'} alignContent={'center'}>
-           <RepoTable data={repositories} module={workspace_uuid ? 'workspace' : 'allRepositories'} onEdit={handleEditRepo} onDelete={handleDeleteRepo} onInit={handleInitRepo}/>
+           <RepoTable data={repositories} onEdit={handleEditRepo} onDelete={handleDeleteRepo} onInit={handleInitRepo}/>
         </Grid>
 
         <FormDrawer
