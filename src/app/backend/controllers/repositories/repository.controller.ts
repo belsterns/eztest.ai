@@ -214,21 +214,25 @@ export class RepositoryController {
     repoToken: string
   ) {
     try {
+      await this.repositoryVerificationValidator.UpdateRepositoryDetails(body);
+
       const { host_url, repo_url } = body;
-
-      const repository = await this.repositoryService.fetchRepoDetails(
-        userUuid,
-        workspaceUuid,
-        repoUuid
-      );
-
       const {
         hostName,
         orgName: organization_name,
         repoName: repo_name,
       } = parseRepoUrl(repo_url);
 
-      await this.repositoryVerificationValidator.UpdateRepositoryDetails(body);
+      const baseUrl = fetchBaseUrl(hostName, host_url);
+
+      // Verify repository existence
+      await this.verifyRepository(
+        hostName,
+        baseUrl,
+        organization_name,
+        repo_name,
+        repoToken
+      );
 
       await this.repositoryService.fetchRepoDetailsByName(
         userUuid,
@@ -236,7 +240,11 @@ export class RepositoryController {
         repo_name
       );
 
-      const baseUrl = fetchBaseUrl(hostName, host_url);
+      const repository = await this.repositoryService.fetchRepoDetails(
+        userUuid,
+        workspaceUuid,
+        repoUuid
+      );
 
       const updatedBody = {
         user_uuid: userUuid,
