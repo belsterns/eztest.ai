@@ -105,7 +105,7 @@ export class RepositoryController {
       const response = {
         uuid,
         created_at,
-        repo_url:repo_url,
+        repo_url: repo_url,
         host_url: repository.host_url,
         is_active,
         is_initialized,
@@ -128,7 +128,7 @@ export class RepositoryController {
     }
   }
 
-  async  getRepositoryByUserAndWorkspaceUuid(
+  async getRepositoryByUserAndWorkspaceUuid(
     userUuid: string,
     workspaceUuid: string
   ) {
@@ -146,7 +146,7 @@ export class RepositoryController {
           uuid: item.workspace.uuid,
           name: item.workspace.name,
         },
-        token:item.token,
+        token: item.token,
         host_url: item.host_url,
         webhook_uuid: item.webhook_uuid,
         webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${item.webhook_uuid}`,

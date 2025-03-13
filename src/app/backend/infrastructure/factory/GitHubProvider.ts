@@ -23,7 +23,7 @@ export class GitHubProvider implements GitProvider {
         }
       );
 
-      return response.data.content; // Base64 encoded
+      return response.data;
     } catch (error: any) {
       console.error(
         `Error fetching content for file '${filePath}':`,
@@ -36,7 +36,7 @@ export class GitHubProvider implements GitProvider {
   async fetchModifiedFiles(
     repoFullName: string,
     branchName: string,
-    changedFiles: any
+    changedFiles: { filename: string; status: string }[]
   ): Promise<any[]> {
     const files = [];
 

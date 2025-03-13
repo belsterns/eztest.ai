@@ -71,7 +71,7 @@ model repositories {
   webhook_uuid      String   @unique
   remote_origin     String
   organization_name String
-  repo_name         String
+  repo_name         String   @unique
   token             String
   is_active         Boolean  @default(true)
   is_initialized    Boolean  @default(false)

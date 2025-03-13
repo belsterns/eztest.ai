@@ -80,6 +80,28 @@ export class RepositoryService {
     }
   }
 
+  async fetchRepositoryByRepoName(repoName: string) {
+    try {
+      const existingRepo = await prisma.repositories.findUnique({
+        where: {
+          repo_name: repoName,
+        },
+      });
+
+      if (!existingRepo) {
+        throw {
+          statusCode: 404,
+          message: StaticMessage.RepositoryNotFound,
+          data: null,
+        };
+      }
+
+      return existingRepo;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
   async fetchRepoDetailsByUserAndWorkspaceUuid(
     userUuid: string,
     workspaceUuid: string
@@ -89,7 +111,7 @@ export class RepositoryService {
       select: {
         uuid: true,
         user_uuid: true,
-        token:true,
+        token: true,
         host_url: true,
         webhook_uuid: true,
         remote_origin: true,
