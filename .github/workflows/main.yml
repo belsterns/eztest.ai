@@ -76,7 +76,7 @@ jobs:
           DEV_SERVER_IP: ${{ secrets.DEV_SERVER_IP }}
           DEV_PRJ_PATH: ${{ secrets.DEV_PRJ_PATH }}
         run: |
-          scp -o StrictHostKeyChecking=no ../../docker-compose.yml root@${DEV_SERVER_IP}:${DEV_PRJ_PATH}/docker-compose.yml
+          scp -o StrictHostKeyChecking=no ./docker-compose.yml root@${DEV_SERVER_IP}:${DEV_PRJ_PATH}/docker-compose.yml
           ssh -o LogLevel=verbose -o StrictHostKeyChecking=no root@${DEV_SERVER_IP} << EOF
           docker login --username ${{ github.actor }} --password ${{ secrets.CONTAINER_REGISTRY_PAT_TOKEN }} ghcr.io
           docker image pull ghcr.io/${{ github.repository }}-app:latest
