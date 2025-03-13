@@ -36,14 +36,19 @@ jobs:
 
       - name: Delete older local images
         run: |
-          app_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/${{ github.repository }}-app" | grep -v ':latest')
-          migrator_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/${{ github.repository }}-migrator" | grep -v ':latest')
-
-          for image in $app_images $migrator_images; do
-            echo "Removing old image $image"
-            docker rmi $image || true  # Ignore error if the image is already deleted
-          done
-          docker builder prune -f
+          app_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/belsterns/eztest.ai-app" | grep -v ':latest' || true)
+          migrator_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/belsterns/eztest.ai-migrator" | grep -v ':latest' || true)
+          
+          if [ -z "$app_images" ] && [ -z "$migrator_images" ]; then
+            echo "No old images found to delete."
+          else
+            for image in $app_images $migrator_images; do
+              echo "Removing old image $image"
+              docker rmi "$image" || echo "Failed to remove image $image"
+            done
+          fi
+          
+          docker builder prune -f || echo "Failed to prune builder cache"
 
 
   pull-deploy:
