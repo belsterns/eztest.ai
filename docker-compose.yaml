@@ -35,6 +35,7 @@ services:
       NEXT_BASE_URL: ${DOMAIN_BASE_URL}
       DATABASE_URL: ${DATABASE_URL}
       SECRET_KEY: ${SECRET_KEY}
+      AUTH_SECRET: ${AUTH_SECRET}
     restart: unless-stopped
     networks:
       - ezt
