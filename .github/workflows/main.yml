@@ -32,7 +32,8 @@ jobs:
 
       - name: Push Docker image to GitHub Container Registry
         run: |
-          docker push ghcr.io/${{ github.repository }}:latest
+          docker push ghcr.io/${{ github.repository }}-app:latest
+          docker push ghcr.io/${{ github.repository }}-migrator:latest
 
       - name: Delete older local images
         run: |
