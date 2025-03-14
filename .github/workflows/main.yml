@@ -53,7 +53,7 @@ jobs:
 
 
   pull-deploy:
-    # needs: build-push
+    needs: build-push
     runs-on: ubuntu-latest
     environment: dev
 
