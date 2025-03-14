@@ -83,4 +83,4 @@ jobs:
           docker image pull ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest
           docker compose -f ${DEV_PRJ_PATH}/docker-compose.yml up -d --force-recreate
           docker image prune -f
-          EOF 
+          EOF
