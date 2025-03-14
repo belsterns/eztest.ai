@@ -77,7 +77,7 @@ jobs:
           DEV_PRJ_PATH: ${{ secrets.DEV_PRJ_PATH }}
         run: |
           ssh -o LogLevel=verbose -o StrictHostKeyChecking=no ubuntu@${{ secrets.DEV_SERVER_IP }} << EOF
-          docker login --username ${{ github.actor }} --password ${{ secrets.CONTAINER_REGISTRY_PAT_TOKEN }} ghcr.io
+          sudo docker login --username ${{ github.actor }} --password ${{ secrets.CONTAINER_REGISTRY_PAT_TOKEN }} ghcr.io
           sudo docker image pull ghcr.io/${{ github.repository }}/app/${{ github.ref_name }}:latest
           sudo docker image pull ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest
           sudo docker compose -f ${DEV_PRJ_PATH}/docker-compose.yml up -d --force-recreate
