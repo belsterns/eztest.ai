@@ -27,18 +27,18 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -f ./Dockerfile -t ghcr.io/app.${{ github.repository }}/${{ github.ref_name }}:latest . --no-cache
-          docker build -f ./Dockerfile.db -t ghcr.io/migrator.${{ github.repository }}/${{ github.ref_name }}:latest . --no-cache
+          docker build -f ./Dockerfile -t ghcr.io/app.${{ github.repository }}/app/${{ github.ref_name }}:latest . --no-cache
+          docker build -f ./Dockerfile.db -t ghcr.io/migrator.${{ github.repository }}/migrator/${{ github.ref_name }}:latest . --no-cache
 
       - name: Push Docker image to GitHub Container Registry
         run: |
-          docker push ghcr.io/app.${{ github.repository }}/${{ github.ref_name }}:latest
-          docker push ghcr.io/migrator.${{ github.repository }}/${{ github.ref_name }}:latest
+          docker push ghcr.io/app.${{ github.repository }}/app/${{ github.ref_name }}:latest
+          docker push ghcr.io/migrator.${{ github.repository }}/migrator/${{ github.ref_name }}:latest
 
       - name: Delete older local images
         run: |
-          app_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/app.${{ github.repository }}/${{ github.ref_name }}" | grep -v ':latest' || true)
-          migrator_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/migrator.${{ github.repository }}/${{ github.ref_name }}" | grep -v ':latest' || true)
+          app_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/app.${{ github.repository }}/app/${{ github.ref_name }}" | grep -v ':latest' || true)
+          migrator_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "ghcr.io/migrator.${{ github.repository }}/migrator/${{ github.ref_name }}" | grep -v ':latest' || true)
           
           if [ -z "$app_images" ] && [ -z "$migrator_images" ]; then
             echo "No old images found to delete."
@@ -78,8 +78,8 @@ jobs:
         run: |
           ssh -o LogLevel=verbose -o StrictHostKeyChecking=no apl_dev@${{ secrets.DEV_SERVER_IP }} << EOF
           docker login --username ${{ github.actor }} --password ${{ secrets.CONTAINER_REGISTRY_PAT_TOKEN }} ghcr.io
-          docker image pull ghcr.io/app.${{ github.repository }}/${{ github.ref_name }}:latest
-          docker image pull ghcr.io/migrator.${{ github.repository }}/${{ github.ref_name }}:latest
+          docker image pull ghcr.io/app.${{ github.repository }}/app/${{ github.ref_name }}:latest
+          docker image pull ghcr.io/migrator.${{ github.repository }}/migrator/${{ github.ref_name }}:latest
           docker compose -f ${DEV_PRJ_PATH}/docker-compose.yml up -d --force-recreate
           docker image prune -f
           EOF
