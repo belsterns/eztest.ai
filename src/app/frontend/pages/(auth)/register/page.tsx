@@ -98,7 +98,7 @@ export default function Register() {
                 { label: "Full Name", name: "fullName", type: "text", required: true, validation: (value) => (value.length < 3 ? "Enter Full Name" : null) },
                 { label: "Organization Name", name: "orgName", type: "text", required: true, validation: (value) => (value.length < 3 ? "Enter Organization name" : null) },
                 { label: "Email", name: "email", type: "email", required: true, validation: (value) => (!/\S+@\S+\.\S+/.test(value) ? "Invalid email" : null) },
-                { label: "Password", name: "password", type: "password", required: true, validation: (value) => (value.length < 6 ? "Password too short" : null) },
+                { label: "Password", name: "password", type: "password", required: true, validation: (value) => (value.length < 6 ? "Password too short" : null) }
               ]}
               submitBtn={handleRegisterSubmit}
             />
