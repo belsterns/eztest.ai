@@ -5,7 +5,6 @@ import FormDrawer from "../formDrawer/drawer";
 import { useEffect, useState } from 'react';
 import { useApi } from '../../hooks/useAPICall';
 import { usePathname } from 'next/navigation';
-import { useAlertManager } from '../../hooks/useAlertManager';
 import BackDropLoader from '../../elements/loader/backDropLoader';
 import RepoTable from './repoTable';
 
@@ -60,7 +59,6 @@ export default function Repositories({module}: props){
     const [editRepoData,setEditRepoData] =  useState({});
     const workspace_uuid = pathName.split('/')[2];
     const { makeApiCall, success } = useApi();
-    const showAlert = useAlertManager();
 
     const handleOpenDrawer = () => setDrawerOpen(true); 
     const handleCloseDrawer = () => {
@@ -85,7 +83,7 @@ export default function Repositories({module}: props){
 
     const handleFormSubmit = async (data: Record<string, string>) => {
         if(drawerData.mode === 'Add'){
-            const result = await makeApiCall({
+            await makeApiCall({
                 url: '/api/v1/repo',
                 headers: {
                    "x-origin-token": `${data.token}`
@@ -98,49 +96,28 @@ export default function Repositories({module}: props){
                 isShowAlert: true,
             });
 
-            setRepositories([...repositories,result.data]);
+            if (success) {
+                getRepositories();
+            }
         }
         else {
             await makeApiCall({
-                url: '/api/v1/repo',
+                url: `/api/v1/repo/${workspace_uuid}/${data.uuid}`,
                 method: 'PATCH',
+                headers: {
+                    "x-origin-token": `${data.token}`
+                 },
                 body: {
-                    workspace_uuid: workspace_uuid ? workspace_uuid : data.workspace_uuid,
-                    repo_url: data.repo_url
+                    ...data
                 },
                 isShowAlert: true,
             });
             
             if (success) {
-                setRepositories((prev) =>
-                    prev.map((repo) =>
-                        repo.uuid === data.uuid ? { ...repo, repo_url: data.repo_url } : repo
-                    )
-                );
+                getRepositories();
             }
         }
        
-    }
-
-    const repoValidate = async (data: Record<string, string>) => {
-        await makeApiCall({
-            url: '/api/v1/repo/validate',
-            headers: {
-               "x-origin-token": `${data.token}`
-            },
-            method: 'POST',
-            body: {
-                repo_url: data.repo_url
-            },
-            isShowAlert: false
-        });
-        if(success) {
-          handleFormSubmit(data);
-        }
-        else {
-            showAlert("Repository validation failed!", true);
-            return null;
-        }
     }
 
     const handleAddRepo = async () => {
@@ -154,6 +131,8 @@ export default function Repositories({module}: props){
     
         setEditRepoData({
             repo_url: data.repo_url,
+            uuid: data.uuid,
+            token: data.token
         });
     
         setDrawerData({
@@ -274,7 +253,7 @@ export default function Repositories({module}: props){
           mode={drawerData.mode}
           fields={formFields}
           initialValues={editRepoData}
-          onSubmit={repoValidate}
+          onSubmit={handleFormSubmit}
         />
 
         </>
