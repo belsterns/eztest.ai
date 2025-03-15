@@ -39,16 +39,18 @@ export default function WorkspaceCard({ workspace, onEdit, onDelete }: CardProps
                     padding: 2,
                     borderRadius: 1,
                     position: "relative",
-                    transition: "box-shadow 0.3s ease-in-out",
                     cursor: "pointer",
                     textDecoration: "none",
-                    "&:hover": {
-                        boxShadow: 4,
-                    },
-                }}
-                onMouseEnter={() => setHovered(true)}
-                onMouseLeave={() => setHovered(false)}
-            >
+                    boxShadow:
+                    "hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px",
+                        ...theme.applyStyles("dark", {
+                            boxShadow:
+                            "hsla(220, 30%, 5%, 0.5) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.08) 0px 15px 35px -5px",
+                        }),
+                    }}
+                    onMouseEnter={() => setHovered(true)}
+                    onMouseLeave={() => setHovered(false)}
+                >
                 <Box
                     sx={{
                         position: "absolute",

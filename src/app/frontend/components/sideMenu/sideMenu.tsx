@@ -2,6 +2,7 @@
 import { styled } from '@mui/material/styles';
 import Avatar from '@mui/material/Avatar';
 import MuiDrawer, { drawerClasses } from '@mui/material/Drawer';
+import Image from 'next/image';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
@@ -9,6 +10,7 @@ import Typography from '@mui/material/Typography';
 import MenuContent from './menuContent';
 import OptionsMenu from './optionsMenu';
 import { useSession } from 'next-auth/react';
+import eztHorLogo from '../../../../../public/EZT Horizontal.png';
 
 const drawerWidth = 240;
 
@@ -39,11 +41,16 @@ export default function SideMenu() {
         <Box
           sx={{
             display: 'flex',
-            mt: 'calc(var(--template-frame-height, 0px) + 4px)',
-            p: 1.5,
+            // mt: 'calc(var(--template-frame-height, 0px) + 4px)',
+            p: 0.5,
+            justifyContent:'center'
           }}
         >
-          EzTest.AI
+          <Image
+              src={eztHorLogo}
+              alt="app."
+              width={150}
+            />
         </Box>
         <Divider />
         <Box
@@ -68,7 +75,7 @@ export default function SideMenu() {
         >
           <Avatar
             sizes="small"
-            alt="Riley Carter"
+            alt={session?.user.full_name}
             src="/static/images/avatar/7.jpg"
             sx={{ width: 36, height: 36 }}
           />
