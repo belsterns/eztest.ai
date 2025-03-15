@@ -130,7 +130,7 @@ export default function AllWorkspaces(){
 
     const getAllWorkspaces = async() => {
         const result = await makeApiCall({
-            url: '/api/v1/workspace',
+            url: '/api/v1/workspace/list',
             method: 'GET',
             isShowAlert: false,
         });
