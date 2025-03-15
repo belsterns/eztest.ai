@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Box, Button, FormControl, FormLabel, TextField, Select, MenuItem, SelectChangeEvent } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 
 interface Field {
   label: string;
@@ -19,7 +18,6 @@ interface FormProps {
 }
 
 export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit, onClose }: FormProps) {
-  const theme = useTheme();
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -76,16 +74,7 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        backgroundColor: theme.palette.mode === "dark" ? "hsl(212, 73.90%, 4.50%)" : theme.palette.background.paper,
-        padding: 3,
-        borderRadius: 2,
-      }}
-    >
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {fields.map(({ label, name, type, required, options }) => (
         <FormControl key={name} fullWidth>
           <FormLabel>{label}</FormLabel>
