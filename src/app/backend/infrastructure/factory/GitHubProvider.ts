@@ -174,10 +174,6 @@ export class GitHubProvider implements GitProvider {
     const suffix = "_fullTest_by_Anand";
     const newBranch = `${baseBranch}${suffix}`;
 
-    console.log("newBranch ----------------->>", newBranch);
-
-    console.log("repoToken ------------->>", this.repoToken);
-
     // Fetch the latest commit SHA
     const branchResponse = await axios.get(
       `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
@@ -210,10 +206,10 @@ export class GitHubProvider implements GitProvider {
 
     //Langflow implementation
 
-    // await prisma.repositories.update({
-    //   where: { uuid: repoUuid, user_uuid: userUuid },
-    //   data: { is_initialized: true },
-    // });
+    await prisma.repositories.update({
+      where: { uuid: repoUuid, user_uuid: userUuid },
+      data: { is_initialized: true },
+    });
 
     return {
       message: `Branch '${newBranch}' created successfully for full test generation.`,
