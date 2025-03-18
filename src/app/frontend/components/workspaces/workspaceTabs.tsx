@@ -75,7 +75,7 @@ export default function WorkspaceTabs() {
   
     const tabs = [
       { label: "Repositories", route: "repositories" },
-      { label: "Users", route: "users" },
+      { label: "Workspace Members", route: "workspace-members" },
     ];
   
     return (
