@@ -1,4 +1,5 @@
 import { GitProvider } from "./GitProvider";
+import prisma from "@/lib/prisma";
 
 export class GiteaProvider implements GitProvider {
   constructor(
@@ -120,5 +121,33 @@ export class GiteaProvider implements GitProvider {
       throw new Error(`Failed to create pull request: ${response.statusText}`);
 
     console.log(`Pull Request created successfully.`);
+  }
+
+  async processFullRepo(
+    userUuid: string,
+    repoUuid: string,
+    repoFullName: string,
+    baseBranch: string
+  ) {
+    const repository = await prisma.repositories.findUnique({
+      where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
+    });
+
+    console.log("repoFullName -------------->>", repoFullName);
+
+    console.log("baseBranch -------------->>", baseBranch);
+
+    if (repository) {
+      throw {
+        statusCode: 404,
+        message:
+          "Repository not found or it may have already been initialized. Please check the repository details.",
+        data: null,
+      };
+    }
+
+    return {
+      message: `TODO: Implement processFullRepo for GiteaProvider`,
+    };
   }
 }
