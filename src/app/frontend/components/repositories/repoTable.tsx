@@ -46,7 +46,14 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
         mt: 3, 
         '& .MuiDataGrid-cell:focus': {
           outline: 'none',
-        }
+        },
+        '& .MuiDataGrid-cell': {
+          alignContent: 'center',
+          whiteSpace: 'normal',
+          textOverflow: 'ellipsis',
+          lineHeight: '1.2', 
+          display: 'block', 
+    },
       }}
       rows={rows}
       columns={updatedColumns}
