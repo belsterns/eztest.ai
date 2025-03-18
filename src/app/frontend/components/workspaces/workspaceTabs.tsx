@@ -12,51 +12,52 @@ interface StyledTabsProps {
 }
 
 const StyledTabs = styled((props: StyledTabsProps) => {
-    return (
-        <Tabs
-            {...props}
-            slotProps={{
-                indicator: {
-                    children: <span className="MuiTabs-indicatorSpan" />,
-                    style: { backgroundColor: 'transparent' },
-                },
-            }}
-        />
-    );
+  return (
+    <Tabs
+      {...props}
+      slotProps={{
+        indicator: {
+          children: <span className="MuiTabs-indicatorSpan" />,
+          style: { backgroundColor: 'transparent' },
+        },
+      }}
+    />
+  );
 })(({ theme }) => {
-    const isDarkMode = theme.palette.mode === 'dark';
-    const selectedColor = isDarkMode ? 'hsl(207, 100%, 37%)' : 'hsl(213, 100%, 24%)';
+  const isDarkMode = theme.palette.mode === 'dark';
+  const indicatorColor = isDarkMode ? 'white' : 'black';
 
-    return {
-        '& .MuiTabs-indicator': {
-            display: 'flex',
-            justifyContent: 'center',
-            width: '100%',
-            backgroundColor: 'transparent',
-        },
-        '& .MuiTabs-indicatorSpan': {
-            maxWidth: 40,
-            width: '100%',
-            backgroundColor: selectedColor, 
-            borderRadius: 2,
-        },
-    };
+  return {
+    '& .MuiTabs-indicator': {
+      display: 'flex',
+      justifyContent: 'center',
+      width: '100%',
+      backgroundColor: 'transparent',
+    },
+    '& .MuiTabs-indicatorSpan': {
+      maxWidth: 40,
+      width: '100%',
+      backgroundColor: indicatorColor,
+      borderRadius: 2,
+    },
+  };
 });
-
 
 const StyledTab = styled(Tab)(({ theme }) => {
   const isDarkMode = theme.palette.mode === 'dark';
+  const selectedColor = isDarkMode ? 'white' : 'black';
+  const unselectedColor = isDarkMode ? 'grey' : 'grey';
 
   return {
     textTransform: 'none',
     fontWeight: theme.typography.fontWeightRegular,
     fontSize: theme.typography.pxToRem(15),
     marginRight: theme.spacing(1),
-    color: isDarkMode ? 'hsl(213, 100%, 24%)' : 'hsl(207, 100%, 37%)', // Unselected tab color
+    color: unselectedColor, // Unselected tab color
     '&.Mui-selected': {
-      color: isDarkMode ? 'hsl(207, 100%, 37%)' : 'hsl(213, 100%, 24%)', // Selected tab color
+      color: selectedColor, // Selected tab color
       '& .MuiTabs-indicatorSpan': {
-        backgroundColor: isDarkMode ? 'hsl(207, 100%, 37%)' : 'hsl(213, 100%, 24%)', // Matches selected tab
+        backgroundColor: selectedColor, // Matches selected tab
       },
     },
   };
