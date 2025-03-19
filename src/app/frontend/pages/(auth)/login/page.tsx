@@ -9,21 +9,29 @@ import { useState } from 'react';
 import { useAlertManager } from '@/app/frontend/hooks/useAlertManager';
 import BackDropLoading from '@/app/frontend/elements/loader/backDropLoader';
 import { StaticMessages } from '@/app/frontend/constants/app';
+import { useRouter } from 'next/navigation';
 
 export default function LogIn() {
   const { data: session } = useSession();
   const showAlert = useAlertManager();
   const [loader,setLoader] = useState(false);
+  const router = useRouter();
 
   const handleLoginSubmit = async (formData: Record<string, string>) => {
     try {
       setLoader(true);
-      await signIn('credentials', {
+      const response = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        redirect: true,
-        redirectTo: "/workspaces"
+        redirect: false
+
       });
+      if (response?.error) {
+        showAlert(StaticMessages.InvalidEmailOrPassword, true);
+      } else {
+        showAlert(StaticMessages.LoggedInSuccessfully, false);
+        router.push('/workspaces');
+      }
     } catch {
       showAlert(StaticMessages.InternalServerError, true);
     } finally {
