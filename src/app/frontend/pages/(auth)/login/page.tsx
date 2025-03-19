@@ -5,14 +5,12 @@ import ColorModeSelect from '../../../services/themeprovidor/theme/ColorModeSele
 import Content from '../../../components/auth/content';
 import AuthForm from '@/app/frontend/components/auth/authForm';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAlertManager } from '@/app/frontend/hooks/useAlertManager';
 import BackDropLoading from '@/app/frontend/elements/loader/backDropLoader';
 import { StaticMessages } from '@/app/frontend/constants/app';
 
 export default function LogIn() {
-  const router = useRouter();
   const { data: session } = useSession();
   const showAlert = useAlertManager();
   const [loader,setLoader] = useState(false);
