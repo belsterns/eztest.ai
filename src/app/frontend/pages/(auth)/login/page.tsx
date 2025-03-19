@@ -20,17 +20,12 @@ export default function LogIn() {
   const handleLoginSubmit = async (formData: Record<string, string>) => {
     try {
       setLoader(true);
-      const response = await signIn('credentials', {
+      await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        redirect: false
+        redirect: true,
+        redirectTo: "/workspaces"
       });
-      if (response?.error) {
-        showAlert(StaticMessages.InvalidEmailOrPassword, true);
-      } else {
-        showAlert(StaticMessages.LoggedInSuccessfully, false);
-        router.push('/workspaces');
-      }
     } catch {
       showAlert(StaticMessages.InternalServerError, true);
     } finally {
