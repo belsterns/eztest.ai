@@ -9,6 +9,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import MenuContent from './menuContent';
 import OptionsMenu from './optionsMenu';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import eztHorLogo from '../../../../../public/EZT Horizontal.png';
 
@@ -46,11 +47,14 @@ export default function SideMenu() {
             justifyContent:'center'
           }}
         >
-          <Image
+          <Link href="/workspaces" passHref>
+            <Image
               src={eztHorLogo}
               alt="app."
               width={150}
+              style={{ cursor: 'pointer' }} // Optional: change cursor to pointer
             />
+          </Link>
         </Box>
         <Divider />
         <Box
