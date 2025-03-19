@@ -69,26 +69,57 @@ export class GiteaProvider implements GitProvider {
     newBranch: string
   ): Promise<void> {
     try {
-      const response = await fetch(
-        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches`,
+      const apiUrl = `${this.apiBaseUrl}/repos/${repoFullName}/branches/${baseBranch}?access_token=${this.repoToken}`;
+
+      const branchResponse = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!branchResponse.ok) {
+        const errorText = await branchResponse.text();
+        console.error("Error Response:", errorText);
+        throw new Error(
+          `Failed to fetch branch details: ${branchResponse.statusText}`
+        );
+      }
+
+      const branchData = await branchResponse.json();
+
+      const latestCommitSHA = branchData?.commit?.id || "SHA_NOT_FOUND";
+
+      const [owner, repo] = repoFullName.split("/"); // Extract owner and repo separately
+
+      const createBranchResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${owner}/${repo}/branches?access_token=${this.repoToken}`,
         {
           method: "POST",
           headers: {
-            "PRIVATE-TOKEN": this.repoToken,
+            Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ branch: newBranch, ref: baseBranch }),
+          body: JSON.stringify({
+            new_branch_name: newBranch,
+            old_branch_name: baseBranch,
+            old_ref_name: latestCommitSHA,
+          }),
         }
       );
 
-      console.log(await response.json());
-
-      // if (!response.ok)
-      //   throw new Error(`Failed to create branch: ${response.statusText}`);
+      if (!createBranchResponse.ok) {
+        const errorText = await createBranchResponse.text();
+        throw new Error(
+          `Failed to create branch: ${createBranchResponse.statusText} - ${errorText}`
+        );
+      }
 
       console.log(`Branch '${newBranch}' created successfully.`);
-    } catch (err) {
-      throw err;
+
+      return createBranchResponse.json();
+    } catch (error: any) {
+      throw error;
     }
   }
 

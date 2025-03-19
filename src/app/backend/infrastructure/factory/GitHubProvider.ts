@@ -63,7 +63,7 @@ export class GitHubProvider implements GitProvider {
     repoFullName: string,
     baseBranch: string,
     newBranch: string
-  ): Promise<void> {
+  ): Promise<any> {
     const branchResponse = await axios.get(
       `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
       {
@@ -76,7 +76,7 @@ export class GitHubProvider implements GitProvider {
 
     const latestCommitSHA = branchResponse.data.object.sha;
 
-    await axios.post(
+    const response = await axios.post(
       `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
       { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
       {
@@ -88,6 +88,8 @@ export class GitHubProvider implements GitProvider {
     );
 
     console.log(`Branch '${newBranch}' created successfully.`);
+
+    return response.data;
   }
 
   async createPullRequest(
