@@ -4,7 +4,7 @@ export function parseRepoUrl(url: string): any {
 
   let host = match[1];
   const org = match[2];
-  const repo = match[3];
+  const repo = match[3].replace(/\/$/, "");
 
   if (host.includes("github.com")) {
     host = "github";
