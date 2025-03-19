@@ -87,7 +87,7 @@ export class GitLabProvider implements GitProvider {
     repoFullName: string,
     baseBranch: string,
     newBranch: string
-  ): Promise<void> {
+  ): Promise<any> {
     try {
       const response = await fetch(
         `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches`,
@@ -101,12 +101,18 @@ export class GitLabProvider implements GitProvider {
         }
       );
 
-      console.log(await response.json());
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to create branch: ${response.status} - ${response.statusText}\n${errorText}`
+        );
+      }
 
-      // if (!response.ok)
-      //   throw new Error(`Failed to create branch: ${response.statusText}`);
+      const responseData = await response.json();
 
       console.log(`Branch '${newBranch}' created successfully.`);
+
+      return responseData;
     } catch (err) {
       throw err;
     }
