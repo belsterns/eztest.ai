@@ -24,8 +24,6 @@ export class FullRepoWebhookController {
         );
       }
 
-      console.log("provider -------------->>>>", provider);
-
       return await provider.processFullRepo(
         userUuid,
         repoUuid,
