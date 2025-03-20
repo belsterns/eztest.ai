@@ -82,6 +82,9 @@ export default function Repositories({module}: props){
     });
 
     const handleFormSubmit = async (data: Record<string, string>) => {
+        // Trim trailing slash from repo_url
+        data.repo_url = data.repo_url.replace(/\/+$/, '');
+
         if(drawerData.mode === 'Add'){
             await makeApiCall({
                 url: '/api/v1/repo',
