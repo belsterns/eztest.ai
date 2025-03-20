@@ -8,6 +8,8 @@ export class StaticMessage {
   static RepoSaveFailed =
     "Failed to save repository details. Please try again.";
   static RepositoryNotFound = "Repository not found";
+  static InvalidRepositoryUrl = "Invalid repository URL";
+  static InvalidToken = "Invalid repository token";
   static RepoDetailsUpdatedSuccessfully =
     "Repository details have been updated saved.";
   static RepositoryDeletedSuccessfully = "Repository deleted successfully.";
