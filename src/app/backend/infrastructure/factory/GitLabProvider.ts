@@ -99,9 +99,6 @@ export class GitLabProvider implements GitProvider {
         }
       );
 
-      // if (!response.ok)
-      //   throw new Error(`Failed to create branch: ${response.statusText}`);
-
       console.log(`Branch '${newBranch}' created successfully.`);
     } catch (err) {
       throw err;

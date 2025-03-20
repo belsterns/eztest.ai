@@ -48,7 +48,7 @@ export default function AllWorkspaces(){
 
     const formFields = [
         { label: "Workspace Name", name: "name", type: "text", required: true },
-        { label: "Description", name: "description", type: "text", required: true },
+        { label: "Description", name: "description", type: "textarea", required: true },
     ];
 
     const handleFormSubmit = async (data: Record<string, string>) => {
@@ -130,7 +130,7 @@ export default function AllWorkspaces(){
 
     const getAllWorkspaces = async() => {
         const result = await makeApiCall({
-            url: '/api/v1/workspace',
+            url: '/api/v1/workspace/list',
             method: 'GET',
             isShowAlert: false,
         });

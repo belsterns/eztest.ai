@@ -1,3 +1,4 @@
+import { StaticMessage } from "../../constants/StaticMessages";
 import { IRepoStrategy } from "./IRepoStrategy";
 
 export class GitLabStrategy implements IRepoStrategy {
@@ -28,10 +29,25 @@ export class GitLabStrategy implements IRepoStrategy {
         requestOptions
       );
 
+      if (searchResponse.status === 404) {
+        throw {
+          message: StaticMessage.InvalidRepositoryUrl,
+          data: null,
+          statusCode: searchResponse.status,
+        };
+      }
+
+      if (searchResponse.status === 401) {
+        throw {
+          message: StaticMessage.InvalidToken,
+          data: null,
+          statusCode: searchResponse.status,
+        };
+      }
+
       return searchResponse.json();
-    } catch (err: any) {
-      console.log(err);
-      throw err;
+    } catch (error: any) {
+      throw error;
     }
   }
 }

@@ -20,24 +20,34 @@ interface FormProps {
 export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit, onClose }: FormProps) {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isUpdated, setIsUpdated] = useState(false);
 
   useEffect(() => {
     if (mode === "Edit") {
       setFormData(initialValues);
+      console.log("Init Values : " , initialValues)
     }
   }, [mode, initialValues]);
 
   const handleChangeSelectField = (e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>) => {
     const { name, value } = e.target;
     if (name) {
-      setFormData({ ...formData, [name]: value as string });
+      setFormData((prev) => {
+        const updatedData = { ...prev, [name]: value as string };
+        setIsUpdated(JSON.stringify(updatedData) !== JSON.stringify(initialValues));
+        return updatedData;
+      });
     }
   };
-
+  
   const handleChangeTextField = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
     if (name) {
-      setFormData({ ...formData, [name]: value as string });
+      setFormData((prev) => {
+        const updatedData = { ...prev, [name]: value as string };
+        setIsUpdated(JSON.stringify(updatedData) !== JSON.stringify(initialValues));
+        return updatedData;
+      });
     }
   };
 
@@ -68,7 +78,11 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
         }
       }
 
-      onSubmit(submitData);
+      const data: any = { uuid: formData.uuid, ...submitData };
+      if (formData.token) {
+          data.token = formData.token;
+      }
+      onSubmit(data);
       onClose();
     }
   };
@@ -96,7 +110,7 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
             <TextField
               id={name}
               name={name}
-              type={type}
+              type={type === "textarea" ? "text" : type} // Use "text" for textarea
               required={required}
               fullWidth
               variant="outlined"
@@ -104,6 +118,8 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
               helperText={errors[name]}
               value={formData[name] || ""}
               onChange={handleChangeTextField}
+              multiline={type === "textarea"} 
+              rows={type === "textarea" ? 4 : undefined}
             />
           )}
         </FormControl>
@@ -113,7 +129,7 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
         <Button variant="outlined" onClick={onClose}>
           Cancel
         </Button>
-        <Button variant="contained" onClick={handleSubmit}>
+        <Button variant="contained" onClick={handleSubmit} disabled={mode === "Edit" && !isUpdated}>
           {mode === "Edit" ? "Update" : "Submit"}
         </Button>
       </Box>
