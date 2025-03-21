@@ -1,11 +1,11 @@
 'use client'
 import { Box } from '@mui/material';
 import Repository from '@/app/frontend/components/repositories/repositories';
-import { useEffect } from 'react';
-import { useWorkspace } from '../layout';
+import { useContext, useEffect } from 'react';
+import { WorkspaceContext } from '@/app/frontend/contexts/workspaceContext';
 
 export default function Repositories() {
-  const workspaceData = useWorkspace();
+  const workspaceData = useContext(WorkspaceContext);
 
   useEffect(() => {
     const workspaceName = workspaceData.workspace_name || 'Workspace';

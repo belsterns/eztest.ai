@@ -1,15 +1,16 @@
 'use client'
 import { Typography } from '@mui/material';
-import { useEffect } from 'react';
-import { useWorkspace } from '../layout';
+import { useContext, useEffect } from 'react';
+import { WorkspaceContext } from '@/app/frontend/contexts/workspaceContext';
 
 export default function Users() {
-   const workspaceData = useWorkspace();
+   const workspaceData = useContext(WorkspaceContext)
 
    useEffect(() => {
       const workspaceName = workspaceData.workspace_name || 'Workspace';
-      document.title = `Workspace Members - ${workspaceName} - EZTest.ai`
+      document.title = `Workspace Member - ${workspaceName} - EZTest.ai`
     },[workspaceData])
+  
   
   return (
     <>

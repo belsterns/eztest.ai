@@ -3,37 +3,17 @@
 import { Box } from '@mui/material';
 import { usePathname } from 'next/navigation';
 import { useApi } from '@/app/frontend/hooks/useAPICall';
-import {
-  useEffect,
-  useState,
-  createContext,
-  useContext,
-  ReactNode,
-} from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import Header from '@/app/frontend/components/header/header';
 import WorkspaceTabs from '@/app/frontend/components/workspaces/workspaceTabs';
 import BackDropLoader from '@/app/frontend/elements/loader/backDropLoader';
+import { WorkspaceContext } from '@/app/frontend/contexts/workspaceContext';
 
 interface Workspace {
   uuid: string;
   name: string;
 }
 
-interface WorkspaceContextProps {
-  workspace_name: string,
-  workspace_uuid: string
-}
-
-const  WorkspaceContextDefaultValues : WorkspaceContextProps = {
-  workspace_name: "Workspace",
-  workspace_uuid: "uuid"
-};
-
-const WorkspaceContext = createContext<WorkspaceContextProps>(WorkspaceContextDefaultValues);
-
-export const useWorkspace = () => {
-  return useContext(WorkspaceContext);
-};
 interface WorkspaceProps {
   children: ReactNode;
 }
@@ -42,9 +22,7 @@ export default function Workspace({ children }: WorkspaceProps) {
   const pathName = usePathname();
   const { makeApiCall } = useApi();
   const [workspace, setWorkspace] = useState<Workspace>({ uuid: '', name: '' });
-  const [loader, setLoader] = useState({
-    pageLoader: false,
-  });
+  const [loader, setLoader] = useState({ pageLoader: false });
 
   const getWorkspaceDetails = async () => {
     const uuid = pathName?.split('/')[2];
@@ -71,6 +49,7 @@ export default function Workspace({ children }: WorkspaceProps) {
 
   useEffect(() => {
     getWorkspaceDetails();
+    // eslint-disable-next-line
   }, []);
 
   const breadCrumbItems = [
@@ -93,7 +72,7 @@ export default function Workspace({ children }: WorkspaceProps) {
         }}
       >
         <WorkspaceTabs />
-        <WorkspaceContext.Provider value={{ workspace_name: workspace.name , workspace_uuid: workspace.uuid }}>
+        <WorkspaceContext.Provider value={{ workspace_name: workspace.name, workspace_uuid: workspace.uuid }}>
           {children}
         </WorkspaceContext.Provider>
       </Box>
