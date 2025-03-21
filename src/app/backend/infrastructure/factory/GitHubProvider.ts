@@ -1,6 +1,7 @@
 import axios from "axios";
 import { GitProvider } from "./GitProvider";
 import { providerMessage } from "../../constants/StaticMessages";
+import prisma from "@/lib/prisma";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -67,7 +68,7 @@ export class GitHubProvider implements GitProvider {
     repoFullName: string,
     baseBranch: string,
     newBranch: string
-  ): Promise<any> {
+  ): Promise<void> {
     try {
       const branchResponse = await axios.get(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
@@ -81,7 +82,7 @@ export class GitHubProvider implements GitProvider {
 
       const latestCommitSHA = branchResponse.data.object.sha;
 
-      const response = await axios.post(
+      return await axios.post(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
         { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
         {
@@ -91,15 +92,8 @@ export class GitHubProvider implements GitProvider {
           },
         }
       );
-
-      console.log(`Branch '${newBranch}' created successfully.`);
-
-      return response.data;
     } catch (error: any) {
-      // console.log("error in createBranch", error);
-      console.log("error in createBranch", error.response);
-
-      if (error.response.status === 404) {
+      if (error.response.status) {
         throw {
           message: error.response.statusText,
           data: null,
@@ -107,13 +101,6 @@ export class GitHubProvider implements GitProvider {
         };
       }
 
-      if (error.response.status === 422) {
-        throw {
-          message: providerMessage.BRANCH_ALREADY_EXISTS,
-          data: null,
-          statusCode: error.response.status,
-        };
-      }
       throw error;
     }
   }
@@ -187,24 +174,27 @@ export class GitHubProvider implements GitProvider {
   ): Promise<{ name: string; path: string; type: string }[]> {
     try {
       const response = await axios.get(
-        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${folderPath}?ref=${branchName}`,
-        {
-          headers: {
-            Authorization: `token ${this.repoToken}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        }
+        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${folderPath}?ref=${branchName}`
       );
 
-      const files = response.data
-        .filter((item: any) => item.type === "file")
-        .map((file: any) => ({
-          name: file.name,
-          path: file.path,
-          type: file.type,
-        }));
+      const files = response.data.tree.filter(
+        (item: any) => item.type === "blob"
+      ); // Only files, ignore directories
 
-      return files;
+      const fileDetails = await Promise.all(
+        files.map(async (file: any) => {
+          const content = await this.fetchFileContent(
+            repoFullName,
+            file.path,
+            branchName
+          );
+          return {
+            path: file.path,
+            content, // Base64 encoded content
+          };
+        })
+      );
+      return fileDetails;
     } catch (error: any) {
       if (error.response.status) {
         throw {
@@ -213,6 +203,163 @@ export class GitHubProvider implements GitProvider {
           statusCode: error.response.status,
         };
       }
+
+      throw error;
+    }
+  }
+
+  async fetchAllFiles(repoFullName: string, branchName: string) {
+    try {
+      const response = await axios.get(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/trees/${branchName}?recursive=1`,
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+      const files = response.data.tree.filter(
+        (item: any) => item.type === "blob"
+      ); // Only files, ignore directories
+
+      const fileDetails = await Promise.all(
+        files.map(async (file: any) => {
+          const content = await this.fetchFileContent(
+            repoFullName,
+            file.path,
+            branchName
+          );
+          return {
+            path: file.path,
+            content, // Base64 encoded content
+          };
+        })
+      );
+      return fileDetails;
+    } catch (error: any) {
+      if (error.response.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  async processFullRepo(
+    userUuid: string,
+    repoUuid: string,
+    repoFullName: string,
+    baseBranch: string
+  ) {
+    try {
+      const repository = await prisma.repositories.findUnique({
+        where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
+      });
+
+      if (repository) {
+        throw {
+          statusCode: 404,
+          message:
+            "Repository not found or it may have already been initialized. Please check the repository details.",
+          data: null,
+        };
+      }
+
+      const suffix = "_fullTest";
+      const newBranch = `${baseBranch}${suffix}`;
+
+      // Fetch the latest commit SHA
+      const branchResponse = await axios.get(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      const latestCommitSHA = branchResponse.data.object.sha;
+
+      // Create a new branch
+      await axios.post(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
+        { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      // Fetch all files in the repository
+      const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
+
+      //Langflow implementation
+
+      await prisma.repositories.update({
+        where: { uuid: repoUuid, user_uuid: userUuid },
+        data: { is_initialized: true },
+      });
+
+      return {
+        message: `Branch '${newBranch}' created successfully for full test generation.`,
+        allFiles,
+      };
+    } catch (error: any) {
+      if (error.response.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  async createOrUpdateFile(
+    repoFullName: string,
+    path: string,
+    content: string,
+    message: string,
+    newBranch: string
+  ) {
+    try {
+      return await axios.put(
+        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${path}`,
+        {
+          message,
+          branch: newBranch,
+          committer: {
+            name: "EZTest AI",
+            email: "eztest.ai@commit.com",
+          },
+          content,
+        },
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+    } catch (error: any) {
+      if (error.response.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
+      }
+
       throw error;
     }
   }

@@ -21,6 +21,12 @@ export interface GitProvider {
     title: string,
     body: string
   ): Promise<void>;
+  processFullRepo(
+    userUuid: string,
+    repoUuid: string,
+    repoFullName: string,
+    baseBranch: string
+  ): Promise<any>;
   fetchFilesInFolderFromBranch(
     repoFullName: string,
     branchName: string,
