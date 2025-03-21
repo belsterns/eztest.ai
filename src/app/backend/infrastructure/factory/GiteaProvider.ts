@@ -69,21 +69,48 @@ export class GiteaProvider implements GitProvider {
     repoFullName: string,
     baseBranch: string,
     newBranch: string
-  ): Promise<void> {
+  ): Promise<any> {
     try {
+      const apiUrl = `${this.apiBaseUrl}/repos/${repoFullName}/branches/${baseBranch}?access_token=${this.repoToken}`;
+
+      const branchResponse = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!branchResponse.ok) {
+        const errorText = await branchResponse.text();
+        console.error("Error Response:", errorText);
+        throw new Error(
+          `Failed to fetch branch details: ${branchResponse.statusText}`
+        );
+      }
+
+      const branchData = await branchResponse.json();
+
+      const latestCommitSHA = branchData?.commit?.id || "SHA_NOT_FOUND";
+
+      const [owner, repo] = repoFullName.split("/"); // Extract owner and repo separately
+
       const response = await fetch(
-        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches`,
+        `${this.apiBaseUrl}/repos/${owner}/${repo}/branches?access_token=${this.repoToken}`,
         {
           method: "POST",
           headers: {
-            "PRIVATE-TOKEN": this.repoToken,
+            Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ branch: newBranch, ref: baseBranch }),
+          body: JSON.stringify({
+            new_branch_name: newBranch,
+            old_branch_name: baseBranch,
+            old_ref_name: latestCommitSHA,
+          }),
         }
       );
-
       const responseData = await response.json();
+
       if (!response.ok) {
         throw {
           message: `Failed to create branch:  ${response.statusText} - ${responseData.message}`,
@@ -99,40 +126,84 @@ export class GiteaProvider implements GitProvider {
 
   async createPullRequest(
     repoFullName: string,
+    headBranch: string,
     baseBranch: string,
-    newBranch: string,
     title: string,
     body: string
-  ): Promise<void> {
+  ): Promise<any> {
     try {
+      const [owner, repo] = repoFullName.split("/"); // Extract owner and repo separately
+
       const response = await fetch(
-        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/merge_requests`,
+        `${this.apiBaseUrl}/repos/${owner}/${repo}/pulls`,
         {
           method: "POST",
           headers: {
-            "PRIVATE-TOKEN": this.repoToken,
+            Authorization: `token ${this.repoToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            source_branch: newBranch,
-            target_branch: baseBranch,
+            head: headBranch,
+            base: baseBranch,
             title,
-            description: body,
+            body,
           }),
         }
       );
 
       const responseData = await response.json();
+
       if (!response.ok) {
         throw {
-          message: `Failed to create pull request:  ${response.statusText} - ${responseData.message}`,
+          message: `Failed to create pull request: ${response.statusText} - ${responseData.message}`,
           data: null,
           statusCode: response.status,
         };
       }
 
+      console.log(`Pull Request created successfully.`);
       return responseData;
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error creating Pull Request:", error.message);
+      throw error;
+    }
+  }
+
+  async fetchFilesInFolderFromBranch(
+    repoFullName: string,
+    branchName: string,
+    folderPath: string
+  ): Promise<{ name: string; path: string; type: string }[]> {
+    try {
+      const [owner, repo] = repoFullName.split("/"); // Extract owner and repo separately
+
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${owner}/${repo}/contents/${folderPath}?ref=${branchName}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to fetch files in folder: ${response.statusText}`,
+          data: null,
+          statusCode: response.status,
+        };
+      }
+
+      const responseData = await response.json();
+
+      return responseData.map((file: any) => ({
+        name: file.name,
+        path: file.path,
+        type: file.type,
+      }));
+    } catch (error: any) {
       throw error;
     }
   }

@@ -90,3 +90,9 @@ export class StatusCode {
   static ServiceUnavailable = 503; // Server is down or overloaded
   static GatewayTimeout = 504; // Timeout from upstream server
 }
+
+export class providerMessage {
+  static BRANCH_ALREADY_EXISTS = "Branch already exists";
+  static BRANCH_NOT_FOUND = "Branch not found";
+  static PULL_REQUEST_ALREADY_EXISTS = "Pull request already exists";
+}
