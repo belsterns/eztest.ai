@@ -163,9 +163,6 @@ export default function Repositories({module}: props){
         const result = await makeApiCall({
             url: `/api/v1/initialize/${data.uuid}`,
             method: 'POST',
-            headers: {
-                "x-origin-token" : `${data.token}`
-            },
             body: {
                 "repo_url": data.repo_url
             },

@@ -25,6 +25,7 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
   useEffect(() => {
     if (mode === "Edit") {
       setFormData(initialValues);
+      console.log("Init Values : " , initialValues)
     }
   }, [mode, initialValues]);
 
