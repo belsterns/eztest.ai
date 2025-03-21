@@ -51,7 +51,7 @@ export class WorkspaceService {
     try {
       const userWorkspace = await prisma.user_workspaces.findMany({
         where: { user_uuid: userUuid },
-        select: {
+        include: {
           workspace: true,
         },
       });

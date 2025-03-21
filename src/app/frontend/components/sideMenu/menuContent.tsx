@@ -28,7 +28,7 @@ export default function MenuContent() {
           <ListItem key={index} disablePadding sx={{ display: 'block' }}>
              <Link href={item.route} passHref legacyBehavior>
                 <ListItemButton 
-                  selected={activeMenu === item.route }
+                  selected={ `/${activeMenu}` === item.route }
                   component="a"
                 >
                   <ListItemIcon>{item.icon}</ListItemIcon>
