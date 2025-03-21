@@ -65,30 +65,40 @@ export class GitHubProvider implements GitProvider {
     baseBranch: string,
     newBranch: string
   ): Promise<void> {
-    const branchResponse = await axios.get(
-      `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
-      {
-        headers: {
-          Authorization: `token ${this.repoToken}`,
-          Accept: "application/vnd.github.v3+json",
-        },
+    try {
+      const branchResponse = await axios.get(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      const latestCommitSHA = branchResponse.data.object.sha;
+
+      return await axios.post(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
+        { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+    } catch (error: any) {
+      if (error.response.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
       }
-    );
 
-    const latestCommitSHA = branchResponse.data.object.sha;
-
-    await axios.post(
-      `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
-      { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
-      {
-        headers: {
-          Authorization: `token ${this.repoToken}`,
-          Accept: "application/vnd.github.v3+json",
-        },
-      }
-    );
-
-    console.log(`Branch '${newBranch}' created successfully.`);
+      throw error;
+    }
   }
 
   async createPullRequest(
@@ -99,7 +109,7 @@ export class GitHubProvider implements GitProvider {
     body: string
   ): Promise<void> {
     try {
-      await axios.post(
+      return await axios.post(
         `${this.apiBaseUrl}/repos/${repoFullName}/pulls`,
         { title, head: newBranch, base: baseBranch, body },
         {
@@ -109,10 +119,15 @@ export class GitHubProvider implements GitProvider {
           },
         }
       );
-
-      console.log(`Pull Request created successfully.`);
     } catch (error: any) {
-      console.error("Error creating Pull Request:", error.message);
+      if (error.response.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
+      }
+
       throw error;
     }
   }
@@ -147,8 +162,15 @@ export class GitHubProvider implements GitProvider {
       );
       return fileDetails;
     } catch (error: any) {
-      console.error("Error fetching all files:", error.message);
-      throw new Error("Failed to fetch repository files.");
+      if (error.response.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
+      }
+
+      throw error;
     }
   }
 
@@ -158,63 +180,73 @@ export class GitHubProvider implements GitProvider {
     repoFullName: string,
     baseBranch: string
   ) {
-    const repository = await prisma.repositories.findUnique({
-      where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
-    });
+    try {
+      const repository = await prisma.repositories.findUnique({
+        where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
+      });
 
-    if (repository) {
-      throw {
-        statusCode: 404,
-        message:
-          "Repository not found or it may have already been initialized. Please check the repository details.",
-        data: null,
+      if (repository) {
+        throw {
+          statusCode: 404,
+          message:
+            "Repository not found or it may have already been initialized. Please check the repository details.",
+          data: null,
+        };
+      }
+
+      const suffix = "_fullTest";
+      const newBranch = `${baseBranch}${suffix}`;
+
+      // Fetch the latest commit SHA
+      const branchResponse = await axios.get(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      const latestCommitSHA = branchResponse.data.object.sha;
+
+      // Create a new branch
+      await axios.post(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
+        { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      // Fetch all files in the repository
+      const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
+
+      //Langflow implementation
+
+      await prisma.repositories.update({
+        where: { uuid: repoUuid, user_uuid: userUuid },
+        data: { is_initialized: true },
+      });
+
+      return {
+        message: `Branch '${newBranch}' created successfully for full test generation.`,
+        allFiles,
       };
+    } catch (error: any) {
+      if (error.response.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
+      }
+
+      throw error;
     }
-
-    const suffix = "_fullTest_by_Anand";
-    const newBranch = `${baseBranch}${suffix}`;
-
-    // Fetch the latest commit SHA
-    const branchResponse = await axios.get(
-      `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`,
-      {
-        headers: {
-          Authorization: `token ${this.repoToken}`,
-          Accept: "application/vnd.github.v3+json",
-        },
-      }
-    );
-
-    const latestCommitSHA = branchResponse.data.object.sha;
-
-    // Create a new branch
-    await axios.post(
-      `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
-      { ref: `refs/heads/${newBranch}`, sha: latestCommitSHA },
-      {
-        headers: {
-          Authorization: `token ${this.repoToken}`,
-          Accept: "application/vnd.github.v3+json",
-        },
-      }
-    );
-
-    console.log(`Branch '${newBranch}' created successfully.`);
-
-    // Fetch all files in the repository
-    const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
-
-    //Langflow implementation
-
-    await prisma.repositories.update({
-      where: { uuid: repoUuid, user_uuid: userUuid },
-      data: { is_initialized: true },
-    });
-
-    return {
-      message: `Branch '${newBranch}' created successfully for full test generation.`,
-      allFiles,
-    };
   }
 
   async createOrUpdateFile(
@@ -225,7 +257,7 @@ export class GitHubProvider implements GitProvider {
     newBranch: string
   ) {
     try {
-      await axios.put(
+      return await axios.put(
         `${this.apiBaseUrl}/repos/${repoFullName}/contents/${path}`,
         {
           message,
@@ -243,12 +275,15 @@ export class GitHubProvider implements GitProvider {
           },
         }
       );
-      console.log(`File '${path}' created or updated successfully.`);
     } catch (error: any) {
-      console.error(
-        `Error creating or updating file '${path}':`,
-        error.message
-      );
+      if (error.response.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
+      }
+
       throw error;
     }
   }

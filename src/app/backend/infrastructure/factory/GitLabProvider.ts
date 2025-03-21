@@ -23,7 +23,11 @@ export class GitLabProvider implements GitProvider {
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch file content: ${response.statusText}`);
+        throw {
+          message: `Failed to fetch file content: ${response.status} - ${response.statusText}`,
+          data: null,
+          statusCode: response.status,
+        };
       }
 
       const content = await response.text();
@@ -50,8 +54,7 @@ export class GitLabProvider implements GitProvider {
 
       return result;
     } catch (error: any) {
-      console.error("error fetching file content", error.message);
-      return null;
+      throw error;
     }
   }
 
@@ -87,7 +90,7 @@ export class GitLabProvider implements GitProvider {
     newBranch: string
   ): Promise<void> {
     try {
-      await fetch(
+      const response = await fetch(
         `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches`,
         {
           method: "POST",
@@ -99,9 +102,25 @@ export class GitLabProvider implements GitProvider {
         }
       );
 
-      console.log(`Branch '${newBranch}' created successfully.`);
-    } catch (err) {
-      throw err;
+      if (!response.ok) {
+        if (response.status === 400) {
+          throw {
+            message: `Failed to create branch details: ${newBranch} already exists`,
+            data: null,
+            statusCode: response.status,
+          };
+        } else {
+          throw {
+            message: `Failed to create branch details: ${response.status} - ${response.statusText}`,
+            data: null,
+            statusCode: response.status,
+          };
+        }
+      }
+
+      return await response.json();
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -112,27 +131,35 @@ export class GitLabProvider implements GitProvider {
     title: string,
     body: string
   ): Promise<void> {
-    const response = await fetch(
-      `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/merge_requests`,
-      {
-        method: "POST",
-        headers: {
-          "PRIVATE-TOKEN": this.repoToken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          source_branch: newBranch,
-          target_branch: baseBranch,
-          title,
-          description: body,
-        }),
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/merge_requests`,
+        {
+          method: "POST",
+          headers: {
+            "PRIVATE-TOKEN": this.repoToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            source_branch: newBranch,
+            target_branch: baseBranch,
+            title,
+            description: body,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to create pull request: ${response.status} - ${response.statusText}`,
+          data: null,
+          statusCode: response.status,
+        };
       }
-    );
-
-    if (!response.ok)
-      throw new Error(`Failed to create pull request: ${response.statusText}`);
-
-    console.log(`Pull Request created successfully.`);
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
   }
 
   async fetchAllFiles(repoFullName: string, branchName: string) {
@@ -150,9 +177,11 @@ export class GitLabProvider implements GitProvider {
       );
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to fetch repository tree: ${response.statusText}`
-        );
+        throw {
+          message: `Failed to fetch repository tree: ${response.status} - ${response.statusText}`,
+          data: null,
+          statusCode: response.status,
+        };
       }
 
       const files = (await response.json()).filter(
@@ -160,7 +189,7 @@ export class GitLabProvider implements GitProvider {
       ); // Only files, ignore directories
 
       // Fetch content for each file
-      const fileDetails = await Promise.all(
+      return await Promise.all(
         files.map(async (file: any) => {
           const content = await this.fetchFileContent(
             repoFullName,
@@ -173,11 +202,8 @@ export class GitLabProvider implements GitProvider {
           };
         })
       );
-
-      return fileDetails;
     } catch (error: any) {
-      console.error("Error fetching all files from GitLab:", error.message);
-      throw new Error("Failed to fetch repository files.");
+      throw error;
     }
   }
 
@@ -187,51 +213,56 @@ export class GitLabProvider implements GitProvider {
     repoFullName: string,
     baseBranch: string
   ) {
-    const repository = await prisma.repositories.findUnique({
-      where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
-    });
+    try {
+      const repository = await prisma.repositories.findUnique({
+        where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
+      });
 
-    if (repository) {
-      throw {
-        statusCode: 404,
-        message:
-          "Repository not found or it may have already been initialized. Please check the repository details.",
-        data: null,
-      };
-    }
-
-    const suffix = "_fullTest_by_Anand";
-    const newBranch = `${baseBranch}${suffix}`;
-
-    // Fetch latest commit SHA from base branch
-    const branchResponse = await fetch(
-      `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches/${baseBranch}`,
-      {
-        headers: { "PRIVATE-TOKEN": this.repoToken },
+      if (repository) {
+        throw {
+          statusCode: 404,
+          message:
+            "Repository not found or it may have already been initialized. Please check the repository details.",
+          data: null,
+        };
       }
-    );
-    if (!branchResponse.ok)
-      throw new Error(
-        `Failed to fetch branch details: ${branchResponse.statusText}`
+
+      const suffix = "_fullTest";
+      const newBranch = `${baseBranch}${suffix}`;
+
+      // Fetch latest commit SHA from base branch
+      const branchResponse = await fetch(
+        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches/${baseBranch}`,
+        {
+          headers: { "PRIVATE-TOKEN": this.repoToken },
+        }
       );
-    // const branchData = await branchResponse.json();
 
-    // Create a new branch
-    await this.createBranch(repoFullName, baseBranch, newBranch);
+      if (!branchResponse.ok) {
+        throw {
+          message: `Failed to fetch branch details: ${branchResponse.status} - ${branchResponse.statusText}`,
+          data: null,
+          statusCode: branchResponse.status,
+        };
+      }
 
-    console.log(`Branch '${newBranch}' created successfully.`);
+      // Create a new branch
+      await this.createBranch(repoFullName, baseBranch, newBranch);
 
-    const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
+      const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
 
-    await prisma.repositories.update({
-      where: { uuid: repoUuid, user_uuid: userUuid },
-      data: { is_initialized: true },
-    });
+      await prisma.repositories.update({
+        where: { uuid: repoUuid, user_uuid: userUuid },
+        data: { is_initialized: true },
+      });
 
-    return {
-      message: `Branch '${newBranch}' created successfully for full test generation.`,
-      allFiles,
-    };
+      return {
+        message: `Branch '${newBranch}' created successfully for full test generation.`,
+        allFiles,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async createOrUpdateFile(
@@ -281,18 +312,14 @@ export class GitLabProvider implements GitProvider {
       });
 
       if (!response.ok)
-        throw new Error(
-          `Failed to ${fileExists ? "update" : "create"} file: ${response.statusText}`
-        );
+        throw {
+          message: `Failed to ${fileExists ? "update" : "create"} file: ${response.statusText}`,
+          data: null,
+          statusCode: response.status,
+        };
 
-      console.log(
-        `File '${path}' ${fileExists ? "updated" : "created"} successfully.`
-      );
+      return await response.json();
     } catch (error: any) {
-      console.error(
-        `Error creating or updating file '${path}':`,
-        error.message
-      );
       throw error;
     }
   }

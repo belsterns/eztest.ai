@@ -31,14 +31,7 @@ export class FullRepoWebhookController {
         baseBranch
       );
     } catch (error: any) {
-      console.error("Error processing full repository:", error.message);
-      return NextResponse.json(
-        {
-          message: "Failed to process full repository",
-          error: error.message,
-        },
-        { status: 500 }
-      );
+      throw error;
     }
   }
 }
