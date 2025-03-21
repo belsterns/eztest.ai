@@ -8,8 +8,6 @@ import {
   useState,
   createContext,
   useContext,
-  Dispatch,
-  SetStateAction,
   ReactNode,
 } from 'react';
 import Header from '@/app/frontend/components/header/header';
@@ -22,20 +20,20 @@ interface Workspace {
 }
 
 interface WorkspaceContextProps {
-  workspace: Workspace;
-  setWorkspace: Dispatch<SetStateAction<Workspace>>;
+  workspace_name: string,
+  workspace_uuid: string
 }
 
-const WorkspaceContext = createContext<WorkspaceContextProps | undefined>(undefined);
-
-export const useWorkspace = (): WorkspaceContextProps => {
-  const context = useContext(WorkspaceContext);
-  if (!context) {
-    throw new Error('useWorkspace must be used within a WorkspaceProvider');
-  }
-  return context;
+const  WorkspaceContextDefaultValues : WorkspaceContextProps = {
+  workspace_name: "Workspace",
+  workspace_uuid: "uuid"
 };
 
+const WorkspaceContext = createContext<WorkspaceContextProps>(WorkspaceContextDefaultValues);
+
+export const useWorkspace = () => {
+  return useContext(WorkspaceContext);
+};
 interface WorkspaceProps {
   children: ReactNode;
 }
@@ -95,7 +93,7 @@ export default function Workspace({ children }: WorkspaceProps) {
         }}
       >
         <WorkspaceTabs />
-        <WorkspaceContext.Provider value={{ workspace, setWorkspace }}>
+        <WorkspaceContext.Provider value={{ workspace_name: workspace.name , workspace_uuid: workspace.uuid }}>
           {children}
         </WorkspaceContext.Provider>
       </Box>

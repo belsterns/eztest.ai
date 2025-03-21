@@ -7,7 +7,7 @@ export default function Users() {
    const workspaceData = useWorkspace();
 
    useEffect(() => {
-      const workspaceName = workspaceData?.workspace?.name || 'Workspace';
+      const workspaceName = workspaceData.workspace_name || 'Workspace';
       document.title = `Workspace Members - ${workspaceName} - EZTest.ai`
     },[workspaceData])
   

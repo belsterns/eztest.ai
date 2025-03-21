@@ -8,7 +8,7 @@ export default function Repositories() {
   const workspaceData = useWorkspace();
 
   useEffect(() => {
-    const workspaceName = workspaceData?.workspace?.name || 'Workspace';
+    const workspaceName = workspaceData.workspace_name || 'Workspace';
     document.title = `Repositories - ${workspaceName} - EZTest.ai`
   },[workspaceData])
 
