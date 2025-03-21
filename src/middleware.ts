@@ -13,17 +13,25 @@ const secret = process.env.AUTH_SECRET;
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  console.log("Pathname ----------------->>", pathname);
+
   const isApiPublicRoute = backendUnprotectedRoutes.includes(pathname);
   if (isApiPublicRoute) {
     return NextResponse.next();
   }
+
+  console.log("isApiPublicRoute --------------->>", isApiPublicRoute);
 
   const isPublicRoute = frontendUnprotectedRoutes.includes(pathname);
   if (isPublicRoute) {
     return NextResponse.next();
   }
 
+  console.log("isPublicRoute ----------------->>", isPublicRoute);
+
   const token = await getToken({ req: request, secret });
+
+  console.log("Token ----------------->>", token);
 
   if (authRoutes.includes(pathname) && token) {
     return NextResponse.redirect(new URL(defaultAuthorizedRoute, request.url));
@@ -38,6 +46,8 @@ export async function middleware(request: NextRequest) {
       new URL(defaultUnAuthorizedRoute, request.url)
     );
   }
+
+  console.log("NextResponse.next() ----------------->>", NextResponse.next());
 
   return NextResponse.next();
 }
