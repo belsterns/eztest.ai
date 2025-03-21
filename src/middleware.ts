@@ -27,25 +27,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  console.log("isPublicRoute ----------------->>", isPublicRoute);
+    console.log(`isPublicRoute ==> ${isPublicRoute}`)
+    const token = await getToken({ req: request, secret });
+    console.log("Token" , token);
 
-  const token = await getToken({ req: request, secret });
+    const session_token = await request.cookies.has('authjs.session-token') || request.cookies.has('__Secure-authjs.session-token');
+    console.log("session_token" , session_token)
 
-  console.log("Token ----------------->>", token);
+    if(authRoutes.includes(pathname) && session_token){
+       console.log("authRoutes.includes(pathname) && token)");
+       return NextResponse.redirect(new URL(defaultAuthorizedRoute, request.url));
+    }
 
-  if (authRoutes.includes(pathname) && token) {
-    return NextResponse.redirect(new URL(defaultAuthorizedRoute, request.url));
-  }
+    if(pathname.includes('/api') && !session_token) {
+        console.log("pathname.includes('/api') && !token");
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    } 
 
-  if (pathname.includes("/api") && !token) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!authRoutes.includes(pathname) && !token) {
-    return NextResponse.redirect(
-      new URL(defaultUnAuthorizedRoute, request.url)
-    );
-  }
+    if(!authRoutes.includes(pathname)  && !session_token) {
+        console.log("!authRoutes.includes(pathname)  && !token");
+        return NextResponse.redirect(new URL(defaultUnAuthorizedRoute, request.url));
+    }
 
   console.log("NextResponse.next() ----------------->>", NextResponse.next());
 
