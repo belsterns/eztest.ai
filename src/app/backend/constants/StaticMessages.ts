@@ -42,6 +42,10 @@ export class StaticMessage {
   static PasswordIsRequired = "Password is required";
   static UserCreatedEmailFailed = "User created notification email failed";
 
+  // Role messages
+  static RoleAlreadyExists = "Role already exists";
+  static RolesFetchedSuccessfully = "Roles fetched successfully";
+
   // User message
   static NoAccess = "No access";
 
