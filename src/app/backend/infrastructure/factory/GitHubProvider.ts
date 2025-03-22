@@ -27,7 +27,7 @@ export class GitHubProvider implements GitProvider {
 
       return response.data;
     } catch (error: any) {
-      if (error.response.status) {
+      if (error.response?.status) {
         throw {
           message: error.response.statusText,
           data: null,
@@ -93,7 +93,7 @@ export class GitHubProvider implements GitProvider {
         }
       );
     } catch (error: any) {
-      if (error.response.status) {
+      if (error.response?.status) {
         throw {
           message: error.response.statusText,
           data: null,
@@ -196,7 +196,7 @@ export class GitHubProvider implements GitProvider {
       );
       return fileDetails;
     } catch (error: any) {
-      if (error.response.status) {
+      if (error.response?.status) {
         throw {
           message: error.response.statusText,
           data: null,
@@ -238,7 +238,7 @@ export class GitHubProvider implements GitProvider {
       );
       return fileDetails;
     } catch (error: any) {
-      if (error.response.status) {
+      if (error.response?.status) {
         throw {
           message: error.response.statusText,
           data: null,
@@ -314,8 +314,8 @@ export class GitHubProvider implements GitProvider {
       };
     } catch (error: any) {
       if (error.statusCode === 404) {
-        throw error
-      } else if (error.response.status) {
+        throw error;
+      } else if (error.response?.status) {
         throw {
           message: error.response.statusText,
           data: null,
@@ -354,7 +354,7 @@ export class GitHubProvider implements GitProvider {
         }
       );
     } catch (error: any) {
-      if (error.response.status) {
+      if (error.response?.status) {
         throw {
           message: error.response.statusText,
           data: null,
@@ -362,6 +362,40 @@ export class GitHubProvider implements GitProvider {
         };
       }
 
+      throw error;
+    }
+  }
+
+  async getAllBranches(repoFullName: string): Promise<string[]> {
+    try {
+      const response = await axios.get(
+        `${this.apiBaseUrl}/repos/${repoFullName}/branches`,
+        {
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      if (response.status !== 200) {
+        throw {
+          message: `Failed to fetch branches: ${response.statusText}`,
+          data: null,
+          statusCode: response.status,
+        };
+      }
+
+      // Extract branch names from the response
+      return response.data.map((branch: { name: string }) => branch.name);
+    } catch (error: any) {
+      if (error.response?.status) {
+        throw {
+          message: error.response.statusText,
+          data: null,
+          statusCode: error.response.status,
+        };
+      }
       throw error;
     }
   }

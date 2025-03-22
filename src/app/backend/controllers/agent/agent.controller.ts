@@ -3,6 +3,7 @@ import { CreatePullRequestDto } from "../../infrastructure/dtos/CreatePullReques
 import { FetchFileContentRequestDto } from "../../infrastructure/dtos/FetchFileContentRequestDto";
 import { FetchModifiedFilesRequestDto } from "../../infrastructure/dtos/FetchModifiedFilesRequestDto";
 import { FolderPathDtoRequest } from "../../infrastructure/dtos/FolderPathDtoRequest";
+import { GetAllBranchesRequestDto } from "../../infrastructure/dtos/GetAllBranchesRequestDto";
 import { fetchProvider } from "../../utils/fetchProvider";
 import { AgentInteractionAPIValidator } from "../../validator/AgentInteractionAPIValidator";
 
@@ -96,6 +97,18 @@ export class AgentController {
         branch_name,
         folder_path
       );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getAllBranches(body: GetAllBranchesRequestDto) {
+    try {
+      await this.agentInteractionAPIValidator.ValidateGetAllBranches(body);
+
+      const { provider, orgName, repoName } = await fetchProvider(body);
+
+      return await provider.getAllBranches(`${orgName}/${repoName}`);
     } catch (error) {
       throw error;
     }

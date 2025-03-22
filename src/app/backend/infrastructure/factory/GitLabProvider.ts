@@ -407,4 +407,34 @@ export class GitLabProvider implements GitProvider {
       throw error;
     }
   }
+
+  async getAllBranches(repoFullName: string): Promise<string[]> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches`,
+        {
+          method: "GET",
+          headers: {
+            "PRIVATE-TOKEN": this.repoToken,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to fetch branches: ${response.statusText} - ${responseData.message || ""}`,
+          data: null,
+          statusCode: response.status,
+        };
+      }
+
+      // Extract branch names from the response
+      return responseData.map((branch: { name: string }) => branch.name);
+    } catch (error: any) {
+      throw error;
+    }
+  }
 }

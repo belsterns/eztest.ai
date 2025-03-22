@@ -4,6 +4,7 @@ import { FetchModifiedFilesRequestDto } from "../infrastructure/dtos/FetchModifi
 import { CreateBranchRequestDto } from "../infrastructure/dtos/CreateBranchRequestDto";
 import { CreatePullRequestDto } from "../infrastructure/dtos/CreatePullRequestDto";
 import { FolderPathDtoRequest } from "../infrastructure/dtos/FolderPathDtoRequest";
+import { GetAllBranchesRequestDto } from "../infrastructure/dtos/GetAllBranchesRequestDto";
 
 export class AgentInteractionAPIValidator {
   async ValidateFetchFileContent(body: FetchFileContentRequestDto) {
@@ -112,6 +113,26 @@ export class AgentInteractionAPIValidator {
         repo_url: yup.string().strict().required().url(),
         branch_name: yup.string().strict().required(),
         folder_path: yup.string().strict().required(),
+      });
+
+      await schema.validate(body, { abortEarly: false });
+      return true;
+    } catch (err: any) {
+      throw {
+        statusCode: 422,
+        message: "Validation error",
+        data: err.inner.reduce((acc: any, error: any) => {
+          acc[error.path] = error.message;
+          return acc;
+        }, {}),
+      };
+    }
+  }
+
+  async ValidateGetAllBranches(body: GetAllBranchesRequestDto) {
+    try {
+      const schema = yup.object().shape({
+        repo_url: yup.string().strict().required().url(),
       });
 
       await schema.validate(body, { abortEarly: false });

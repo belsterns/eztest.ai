@@ -32,4 +32,5 @@ export interface GitProvider {
     branchName: string,
     folderPath: string
   ): Promise<any[]>;
+  getAllBranches(repoFullName: string): Promise<any[]>;
 }
