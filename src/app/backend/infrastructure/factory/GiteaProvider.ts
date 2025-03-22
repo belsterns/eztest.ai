@@ -81,7 +81,6 @@ export class GiteaProvider implements GitProvider {
       });
 
       if (!branchResponse.ok) {
-        const errorText = await branchResponse.text();
         throw new Error(
           `Failed to fetch branch details: ${branchResponse.statusText}`
         );
