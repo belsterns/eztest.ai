@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const authRoutes = ["/login", "/register"];
-const frontendUnprotectedRoutes = ["/about"];
-const backendUnprotectedRoutes: string[] = [];
+const frontEndPublicRoutes = ["/login", "/register"];
+const backEndPublicRoutes = ["/api/v1/auth/sign-up"];
+const unprotectedRoutes = ["/about"]; 
 
 const defaultUnAuthorizedRoute = "/login";
 const defaultAuthorizedRoute = "/workspaces";
@@ -11,49 +11,53 @@ const defaultAuthorizedRoute = "/workspaces";
 const secret = process.env.AUTH_SECRET;
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+    const { pathname } = request.nextUrl;
+    
+    console.log("pathname", pathname);
+    const isPublicRoute =
+        frontEndPublicRoutes.includes(pathname) ||
+        backEndPublicRoutes.includes(pathname);
+    console.log(" isPublicRoute",  isPublicRoute);
 
-  console.log("Pathname ----------------->>", pathname);
+    const isUnprotectedRoute = unprotectedRoutes.includes(pathname);
 
-  const isApiPublicRoute = backendUnprotectedRoutes.includes(pathname);
-  if (isApiPublicRoute) {
-    return NextResponse.next();
-  }
+    const token = await getToken({ req: request, secret, cookieName: "__Secure-authjs.session-token" });
 
-  console.log("isApiPublicRoute --------------->>", isApiPublicRoute);
-
-  const isPublicRoute = frontendUnprotectedRoutes.includes(pathname);
-  if (isPublicRoute) {
-    return NextResponse.next();
-  }
-
-    console.log(`isPublicRoute ==> ${isPublicRoute}`)
-    const token = await getToken({ req: request, secret });
-    console.log("Token" , token);
-
-    const session_token = await request.cookies.has('authjs.session-token') || request.cookies.has('__Secure-authjs.session-token');
-    console.log("session_token" , session_token)
-
-    if(authRoutes.includes(pathname) && session_token){
-       console.log("authRoutes.includes(pathname) && token)");
-       return NextResponse.redirect(new URL(defaultAuthorizedRoute, request.url));
+    // If the route is unprotected, allow access
+    if (isUnprotectedRoute) {
+        return NextResponse.next();
     }
 
-    if(pathname.includes('/api') && !session_token) {
-        console.log("pathname.includes('/api') && !token");
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    } 
+    // Handle the root path `/`
+    if (pathname === "/") {
+        if (token) {
+            return NextResponse.redirect(new URL(defaultAuthorizedRoute, request.url));
+        } else {
+            return NextResponse.redirect(new URL(defaultUnAuthorizedRoute, request.url));
+        }
+    }
 
-    if(!authRoutes.includes(pathname)  && !session_token) {
-        console.log("!authRoutes.includes(pathname)  && !token");
+    // If user is NOT authenticated and trying to access a PRIVATE route
+    if (!isPublicRoute && !token) {
+        if (request.nextUrl.pathname.startsWith("/api")) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        }
         return NextResponse.redirect(new URL(defaultUnAuthorizedRoute, request.url));
     }
 
-  console.log("NextResponse.next() ----------------->>", NextResponse.next());
+    // If user IS authenticated and trying to access a PUBLIC route
+    if (isPublicRoute && token) {
+        if (request.nextUrl.pathname.startsWith("/api")) {
+            return NextResponse.json({ message: "Authorized" }, { status: 200 });
+        }
+        return NextResponse.redirect(new URL(defaultAuthorizedRoute, request.url));
+    }
 
-  return NextResponse.next();
+    return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|.*\\.png$).*)"], // Excludes static files and images, but includes API except /api/auth
+    matcher: [
+        "/((?!api/auth|_next/static|_next/image|.*\\.png$).*)",
+    ], // Excludes static files and images, but includes API except /api/auth
 };

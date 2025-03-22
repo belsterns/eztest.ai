@@ -53,7 +53,7 @@ export default function Workspace({ children }: WorkspaceProps) {
   }, []);
 
   const breadCrumbItems = [
-    { label: 'Workspaces', route: '/workspaces' },
+    { label: 'All Workspaces', route: '/workspaces' },
     { label: workspace.name || '...', route: `/workspaces/${workspace.uuid}` },
   ];
 

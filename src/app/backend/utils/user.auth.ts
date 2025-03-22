@@ -7,7 +7,10 @@ export async function authenticateUser(request: NextRequest) {
   const jwt: any = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
+    cookieName: "__Secure-authjs.session-token"
   });
+  console.log(`process.env.AUTH_SECRET in user.auth.ts ----> ${process.env.AUTH_SECRET}`)
+  console.log(`jwt in user.auth.ts ----> ${jwt}`)
 
   if (!jwt || !jwt.user_info) {
     throw new UnauthorizedException(StaticMessage.NoAccess);

@@ -89,7 +89,12 @@ export default function Repositories({module}: props){
         { field: 'repo_url', headerName: 'Repository URL', width: 290 },
         { field: 'webhook_url', headerName: 'Webhook', width: 290 },
         { field: 'remote_origin', headerName: 'Host', width: 100 },
-        { field: 'is_initialized', headerName: 'Initialized', width: 100, renderCell: (params:boolean) => (params === true ? 'Yes' : 'No') },
+        {
+            field: 'is_initialized',
+            headerName: 'Initialized',
+            width: 100,
+            renderCell: (params:any) => (params.value === true ? 'Yes' : 'No'),
+        },
     ];
 
     const handleFormSubmit = async (data: Record<string, string>) => {
@@ -183,11 +188,7 @@ export default function Repositories({module}: props){
         });
 
         if (result) {
-            setRepositories((prevRepos) =>
-              prevRepos.map((repo) =>
-                repo.uuid === data.uuid ? { ...repo, is_initialized: true } : repo
-              )
-            );
+           getRepositories();
         }
     }
 
