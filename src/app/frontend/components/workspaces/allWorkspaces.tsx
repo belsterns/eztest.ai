@@ -48,7 +48,7 @@ export default function AllWorkspaces(){
 
     const formFields = [
         { label: "Workspace Name", name: "name", type: "text", required: true },
-        { label: "Description", name: "description", type: "text", required: true },
+        { label: "Description", name: "description", type: "textarea", required: true },
     ];
 
     const handleFormSubmit = async (data: Record<string, string>) => {

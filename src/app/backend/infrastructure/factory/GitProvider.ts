@@ -16,9 +16,20 @@ export interface GitProvider {
   ): Promise<void>;
   createPullRequest(
     repoFullName: string,
+    headBranch: string,
     baseBranch: string,
-    newBranch: string,
     title: string,
     body: string
   ): Promise<void>;
+  processFullRepo(
+    userUuid: string,
+    repoUuid: string,
+    repoFullName: string,
+    baseBranch: string
+  ): Promise<any>;
+  fetchFilesInFolderFromBranch(
+    repoFullName: string,
+    branchName: string,
+    folderPath: string
+  ): Promise<any[]>;
 }

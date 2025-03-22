@@ -8,6 +8,8 @@ export class StaticMessage {
   static RepoSaveFailed =
     "Failed to save repository details. Please try again.";
   static RepositoryNotFound = "Repository not found";
+  static InvalidRepositoryUrl = "Invalid repository URL";
+  static InvalidToken = "Invalid repository token";
   static RepoDetailsUpdatedSuccessfully =
     "Repository details have been updated saved.";
   static RepositoryDeletedSuccessfully = "Repository deleted successfully.";
@@ -39,6 +41,10 @@ export class StaticMessage {
   static PasswordEmailFailed = "Email failed";
   static PasswordIsRequired = "Password is required";
   static UserCreatedEmailFailed = "User created notification email failed";
+
+  // Role messages
+  static RoleAlreadyExists = "Role already exists";
+  static RolesFetchedSuccessfully = "Roles fetched successfully";
 
   // User message
   static NoAccess = "No access";
@@ -83,4 +89,10 @@ export class StatusCode {
   static BadGateway = 502; // Invalid response from an upstream server
   static ServiceUnavailable = 503; // Server is down or overloaded
   static GatewayTimeout = 504; // Timeout from upstream server
+}
+
+export class providerMessage {
+  static BRANCH_ALREADY_EXISTS = "Branch already exists";
+  static BRANCH_NOT_FOUND = "Branch not found";
+  static PULL_REQUEST_ALREADY_EXISTS = "Pull request already exists";
 }

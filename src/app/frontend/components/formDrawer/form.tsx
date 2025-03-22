@@ -110,7 +110,7 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
             <TextField
               id={name}
               name={name}
-              type={type}
+              type={type === "textarea" ? "text" : type} // Use "text" for textarea
               required={required}
               fullWidth
               variant="outlined"
@@ -118,6 +118,8 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
               helperText={errors[name]}
               value={formData[name] || ""}
               onChange={handleChangeTextField}
+              multiline={type === "textarea"} 
+              rows={type === "textarea" ? 4 : undefined}
             />
           )}
         </FormControl>

@@ -60,8 +60,7 @@ export default function OptionsMenu() {
         >
             {/* Theme Selector */}
             <MenuItem>
-            <ListItemText>Theme</ListItemText>
-            <ColorModeIconDropdown />
+             <ColorModeIconDropdown />
             </MenuItem>
 
             <Divider />

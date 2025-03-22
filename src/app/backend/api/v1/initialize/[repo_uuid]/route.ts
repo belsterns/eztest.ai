@@ -1,31 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FullRepoWebhookController } from "@/app/backend/controllers/webhook/fullRepoWebhook.controller";
 import { authenticateUser } from "@/app/backend/utils/user.auth";
-import { StaticMessage } from "@/app/backend/constants/StaticMessages";
+import { handleError } from "@/app/backend/utils/errorHandler";
 
 const controller = new FullRepoWebhookController();
 
 export async function POST(request: NextRequest, context: any) {
-  const { userUuid } = await authenticateUser(request);
+  try {
+    const { userUuid } = await authenticateUser(request);
 
-  const headers = request.headers;
+    const body = await request.json();
 
-  const repoToken = headers.get("x-origin-token");
-  const body = await request.json();
+    const { repo_uuid: repoUuid } = await context.params;
 
-  if (!repoToken) {
-    return NextResponse.json(
-      { message: StaticMessage.InvalidGitHubToken },
-      { status: 401 }
+    const response = await controller.handleFullRepoTestInitialization(
+      userUuid,
+      repoUuid,
+      body
     );
+
+    return NextResponse.json(response, { status: 200 });
+  } catch (error) {
+    return handleError(error);
   }
-
-  const { repo_uuid: repoUuid } = await context.params;
-
-  return await controller.handleFullRepoTestInitialization(
-    userUuid,
-    repoUuid,
-    body,
-    repoToken
-  );
 }

@@ -46,4 +46,14 @@ export class RoleService {
       throw error;
     }
   }
+
+  async fetchAllRoles() {
+    try {
+      return await prisma.org_roles.findMany({
+        select: { uuid: true, name: true, description: true },
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
 }
