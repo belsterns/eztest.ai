@@ -185,8 +185,8 @@ export class GitHubProvider implements GitProvider {
         files.map(async (file: any) => {
           const content = await this.fetchFileContent(
             repoFullName,
-            file.path,
-            branchName
+            branchName,
+            file.path
           );
           return {
             path: file.path,
@@ -227,8 +227,8 @@ export class GitHubProvider implements GitProvider {
         files.map(async (file: any) => {
           const content = await this.fetchFileContent(
             repoFullName,
-            file.path,
-            branchName
+            branchName,
+            file.path
           );
           return {
             path: file.path,
@@ -313,7 +313,9 @@ export class GitHubProvider implements GitProvider {
         allFiles,
       };
     } catch (error: any) {
-      if (error.response.status) {
+      if (error.statusCode === 404) {
+        throw error
+      } else if (error.response.status) {
         throw {
           message: error.response.statusText,
           data: null,

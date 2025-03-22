@@ -277,8 +277,8 @@ export class GitLabProvider implements GitProvider {
         files.map(async (file: any) => {
           const content = await this.fetchFileContent(
             repoFullName,
-            file.path,
-            branchName
+            branchName,
+            file.path
           );
           return {
             path: file.path,

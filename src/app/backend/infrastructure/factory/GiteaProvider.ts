@@ -82,7 +82,6 @@ export class GiteaProvider implements GitProvider {
 
       if (!branchResponse.ok) {
         const errorText = await branchResponse.text();
-        console.error("Error Response:", errorText);
         throw new Error(
           `Failed to fetch branch details: ${branchResponse.statusText}`
         );
@@ -240,8 +239,8 @@ export class GiteaProvider implements GitProvider {
         files.map(async (file: any) => {
           const content = await this.fetchFileContent(
             repoFullName,
-            file.path,
-            branchName
+            branchName,
+            file.path
           );
           return {
             path: file.path,
@@ -279,53 +278,7 @@ export class GiteaProvider implements GitProvider {
       const suffix = "_fullTest";
       const newBranch = `${baseBranch}${suffix}`;
 
-      const apiUrl = `${this.apiBaseUrl}/repos/${repoFullName}/branches/${baseBranch}?access_token=${this.repoToken}`;
-
-      const branchResponse = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      const responseData = await branchResponse.json();
-
-      if (!branchResponse.ok) {
-        throw {
-          message: `Failed to fetch branch details: ${branchResponse.statusText} - ${responseData.message}`,
-          data: null,
-          statusCode: branchResponse.status,
-        };
-      }
-
-      const latestCommitSHA = responseData?.commit?.id || "SHA_NOT_FOUND";
-
-      const [owner, repo] = repoFullName.split("/"); // Extract owner and repo separately
-
-      const createBranchResponse = await fetch(
-        `${this.apiBaseUrl}/repos/${owner}/${repo}/branches?access_token=${this.repoToken}`,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            new_branch_name: newBranch,
-            old_branch_name: baseBranch,
-            old_ref_name: latestCommitSHA,
-          }),
-        }
-      );
-
-      if (!createBranchResponse.ok) {
-        const errorText = await createBranchResponse.text();
-        throw {
-          message: `Failed to create branch: ${createBranchResponse.statusText} - ${errorText}`,
-          data: null,
-          statusCode: createBranchResponse.status,
-        };
-      }
+      await this.createBranch(repoFullName, baseBranch, newBranch);
 
       // Fetch all files in the repository
       const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
