@@ -1,9 +1,10 @@
-import * as React from 'react';
+import { useState } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import { Button, IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Repository } from './repositories';
+import DeletePopup from '../../elements/popup/deleteConfirmation';
 
 interface CustomizedDataGridProps {
   columns: { field: string; headerName: string; width: number; renderCell?: (params: any) => React.ReactNode }[];
@@ -14,6 +15,19 @@ interface CustomizedDataGridProps {
 }
 
 export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDelete }: CustomizedDataGridProps) {
+  const [deletePopupOpen, setDeletePopupOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<Repository | null>(null);
+
+  const handleDeleteClick = (row: Repository) => {
+    setSelectedRow(row);
+    setDeletePopupOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (onDelete && selectedRow) onDelete(selectedRow);
+    setDeletePopupOpen(false);
+  };
+
   const actionColumn = {
     field: 'actions',
     headerName: 'Action',
@@ -31,7 +45,7 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
         <IconButton color="primary" onClick={() => onEdit?.(params.row)}>
           <EditIcon />
         </IconButton>
-        <IconButton color="error" onClick={() => onDelete?.(params.row)}>
+        <IconButton color="error" onClick={() => handleDeleteClick(params.row)}>
           <DeleteIcon />
         </IconButton>
       </>
@@ -41,54 +55,63 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
   const updatedColumns = [...columns, actionColumn];
 
   return (
-    <DataGrid
-      sx={{ 
-        mt: 3, 
-        '& .MuiDataGrid-cell:focus': {
-          outline: 'none',
-        },
-        '& .MuiDataGrid-cell': {
-          alignContent: 'center',
-          whiteSpace: 'normal',
-          textOverflow: 'ellipsis',
-          lineHeight: '1.2', 
-          display: 'block', 
-    },
-      }}
-      rows={rows}
-      columns={updatedColumns}
-      getRowClassName={(params) =>
-        params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
-      }
-      hideFooter
-      disableColumnResize
-      density="standard"
-      slotProps={{
-        filterPanel: {
-          filterFormProps: {
-            logicOperatorInputProps: {
-              variant: 'outlined',
-              size: 'large',
-            },
-            columnInputProps: {
-              variant: 'outlined',
-              size: 'small',
-              sx: { mt: 'auto' },
-            },
-            operatorInputProps: {
-              variant: 'outlined',
-              size: 'small',
-              sx: { mt: 'auto' },
-            },
-            valueInputProps: {
-              InputComponentProps: {
+    <>
+      <DataGrid
+        sx={{ 
+          mt: 3, 
+          '& .MuiDataGrid-cell:focus': {
+            outline: 'none',
+          },
+          '& .MuiDataGrid-cell': {
+            alignContent: 'center',
+            whiteSpace: 'normal',
+            textOverflow: 'ellipsis',
+            lineHeight: '1.2', 
+            display: 'block', 
+          },
+        }}
+        rows={rows}
+        columns={updatedColumns}
+        getRowClassName={(params) =>
+          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
+        }
+        hideFooter
+        disableColumnResize
+        density="standard"
+        slotProps={{
+          filterPanel: {
+            filterFormProps: {
+              logicOperatorInputProps: {
+                variant: 'outlined',
+                size: 'large',
+              },
+              columnInputProps: {
                 variant: 'outlined',
                 size: 'small',
+                sx: { mt: 'auto' },
+              },
+              operatorInputProps: {
+                variant: 'outlined',
+                size: 'small',
+                sx: { mt: 'auto' },
+              },
+              valueInputProps: {
+                InputComponentProps: {
+                  variant: 'outlined',
+                  size: 'small',
+                },
               },
             },
           },
-        },
-      }}
-    />
+        }}
+      />
+      <DeletePopup
+        open={deletePopupOpen}
+        element="repository"
+        element_name={selectedRow?.repo_name || ''}
+        handleClose={() => setDeletePopupOpen(false)}
+        handleDelete={handleDeleteConfirm}
+      />
+    </>
   );
 }
