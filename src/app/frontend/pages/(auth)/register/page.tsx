@@ -8,6 +8,7 @@ import AuthForm from '@/app/frontend/components/auth/authForm';
 import { useRouter } from 'next/navigation';
 import { useApi } from '@/app/frontend/hooks/useAPICall';
 import BackDropLoader from '../../../elements/loader/backDropLoader';
+import { getSession } from 'next-auth/react';
 
 export default function Register() {
     const router = useRouter();
@@ -31,7 +32,8 @@ export default function Register() {
           setIsLoading: setLoader,
           loader: 'pageLoader'
         });
-       
+
+        await getSession();
     };
     
     useEffect(()=> {
