@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { fetchProvider } from "../../utils/fetchProvider";
+import { RepositoryService } from "../../services/repositories/repository.service";
 
 export class FullRepoWebhookController {
+  private repositoryService: RepositoryService;
+
+  constructor() {
+    this.repositoryService = new RepositoryService();
+  }
+
   async handleFullRepoTestInitialization(
     userUuid: string,
     repoUuid: string,
     body: any
   ) {
     try {
+      await this.repositoryService.fetchRepoDetailsByUuid(repoUuid);
+
       const {
         provider,
         orgName: organization_name,

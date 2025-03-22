@@ -179,7 +179,6 @@ export class GitLabProvider implements GitProvider {
         };
       }
 
-      console.log(`Pull Request created successfully.`);
       const responseData = await response.json();
       return responseData;
     } catch (error: any) {
@@ -187,9 +186,6 @@ export class GitLabProvider implements GitProvider {
     }
   }
 
-  /**
-   * Check if a branch exists in the repository.
-   */
   async checkBranchExists(
     repoFullName: string,
     branchName: string
@@ -403,6 +399,161 @@ export class GitLabProvider implements GitProvider {
         };
 
       return await response.json();
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async getAllBranches(repoFullName: string): Promise<string[]> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/branches`,
+        {
+          method: "GET",
+          headers: {
+            "PRIVATE-TOKEN": this.repoToken,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to fetch branches: ${response.statusText} - ${responseData.message || ""}`,
+          data: null,
+          statusCode: response.status,
+        };
+      }
+
+      // Extract branch names from the response
+      return responseData.map((branch: { name: string }) => branch.name);
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async updateExistingFile(
+    repoFullName: string,
+    branchName: string,
+    filePath: string,
+    message: string,
+    committer: { name: string; email: string },
+    content: string,
+    sha: string
+  ): Promise<any> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/files/${encodeURIComponent(filePath)}`,
+        {
+          method: "PUT",
+          headers: {
+            "PRIVATE-TOKEN": this.repoToken,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            branch: branchName,
+            content,
+            commit_message: message,
+            author_name: committer.name,
+            author_email: committer.email,
+            last_commit_id: sha
+              ? sha
+              : await this.getFileSha(repoFullName, filePath, branchName),
+          }),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to update file: ${response.statusText} - ${responseData.message || ""}`,
+          statusCode: response.status,
+          data: responseData,
+        };
+      }
+
+      return responseData;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async getFileSha(
+    repoFullName: string,
+    filePath: string,
+    branchName: string
+  ): Promise<string> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/projects/${encodeURIComponent(
+          repoFullName
+        )}/repository/files/${encodeURIComponent(filePath)}?ref=${branchName}`,
+        {
+          method: "GET",
+          headers: {
+            "PRIVATE-TOKEN": this.repoToken,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch file SHA from GitLab: ${response.status} - ${responseData.message}`
+        );
+      }
+
+      return responseData.blob_id;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async createNewFile(
+    repoFullName: string,
+    branchName: string,
+    filePath: string,
+    message: string,
+    committer: { name: string; email: string },
+    content: string
+  ): Promise<any> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/projects/${encodeURIComponent(repoFullName)}/repository/files/${encodeURIComponent(filePath)}`,
+        {
+          method: "POST",
+          headers: {
+            "PRIVATE-TOKEN": this.repoToken,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            branch: branchName,
+            content, // GitLab automatically encodes it, so send raw content
+            commit_message: message,
+            author_name: committer.name,
+            author_email: committer.email,
+          }),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to create file: ${response.statusText} - ${responseData.message || ""}`,
+          statusCode: response.status,
+          data: responseData,
+        };
+      }
+
+      return responseData;
     } catch (error: any) {
       throw error;
     }
