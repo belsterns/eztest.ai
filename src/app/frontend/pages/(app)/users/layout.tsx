@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Users",
+  title: "Users - EZTest.ai",
   description: "Users Page",
 };
 
