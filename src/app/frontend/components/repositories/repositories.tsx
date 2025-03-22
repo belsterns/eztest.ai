@@ -70,13 +70,15 @@ export default function Repositories({module}: props){
         setFormFields([
             { label: "Repository URL", name: "repo_url", type: "url", required: true },
             { label: "Personal Access Token", name: "token", type: "string", required: true },
+            { label: "Custom Domain", name: "host_url", type: "url", required: false },
         ]);
         setEditRepoData({});
         setDrawerOpen(false);
     }
     const [formFields, setFormFields] = useState<Field[]>([
-        { label: "Repository URL", name: "repo_url", type: "url", required: true },
-        { label: "Personal Access Token", name: "token", type: "string", required: true },
+        { label: "Repository URL*", name: "repo_url", type: "url", required: true },
+        { label: "Personal Access Token*", name: "token", type: "string", required: true },
+        { label: "Custom Domain", name: "host_url", type: "url", required: false },
     ]);
     const [loader, setLoader] = useState({
         pageLoader: false
@@ -103,7 +105,8 @@ export default function Repositories({module}: props){
                 method: 'POST',
                 body: {
                     workspace_uuid: workspace_uuid ? workspace_uuid : data.workspace_uuid,
-                    repo_url: data.repo_url
+                    repo_url: data.repo_url,
+                    host_url: data.host_url
                 },
                 isShowAlert: true,
             });
@@ -139,6 +142,7 @@ export default function Repositories({module}: props){
     const handleEditRepo = async (data: Repository) => {
         setFormFields([
             { label: "Repository URL", name: "repo_url", type: "url", required: true },
+            { label: "Custom Domain", name: "host_url", type: "url", required: false },
         ]);
     
         setEditRepoData({
