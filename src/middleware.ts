@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest) {
 
     console.log(`isPublicRoute ==> ${isPublicRoute}`)
     const token = await getToken({ req: request, secret });
+    console.log("Secret" , secret);
     console.log("Token" , token);
 
     const session_token = await request.cookies.has('authjs.session-token') || request.cookies.has('__Secure-authjs.session-token');
