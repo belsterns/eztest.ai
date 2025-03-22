@@ -33,4 +33,21 @@ export interface GitProvider {
     folderPath: string
   ): Promise<any[]>;
   getAllBranches(repoFullName: string): Promise<any[]>;
+  updateExistingFile(
+    repoFullName: string,
+    branchName: string,
+    filePath: string,
+    message: string,
+    committer: { name: string; email: string },
+    content: string,
+    sha: string
+  ): Promise<any>;
+  createNewFile(
+    repoFullName: string,
+    branchName: string,
+    filePath: string,
+    message: string,
+    committer: { name: string; email: string },
+    content: string
+  ): Promise<any>;
 }

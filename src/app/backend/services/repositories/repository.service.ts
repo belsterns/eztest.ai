@@ -54,6 +54,26 @@ export class RepositoryService {
     return repo;
   }
 
+  async fetchRepoDetailsByUuid(repoUuid: string) {
+    try {
+      const repo = await prisma.repositories.findUnique({
+        where: {
+          uuid: repoUuid,
+        },
+      });
+
+      if (!repo) {
+        throw {
+          statusCode: 404,
+          message: StaticMessage.RepositoryNotFound,
+          data: null,
+        };
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
   async fetchRepoDetailsByName(
     userUuid: string,
     orgName: string,

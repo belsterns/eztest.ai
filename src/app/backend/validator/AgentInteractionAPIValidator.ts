@@ -5,6 +5,8 @@ import { CreateBranchRequestDto } from "../infrastructure/dtos/CreateBranchReque
 import { CreatePullRequestDto } from "../infrastructure/dtos/CreatePullRequestDto";
 import { FolderPathDtoRequest } from "../infrastructure/dtos/FolderPathDtoRequest";
 import { GetAllBranchesRequestDto } from "../infrastructure/dtos/GetAllBranchesRequestDto";
+import { UpdateExistingFileRequestDto } from "../infrastructure/dtos/UpdateExistingFileRequestDto";
+import { CreateNewFileRequestDto } from "../infrastructure/dtos/CreateNewFileRequestDto";
 
 export class AgentInteractionAPIValidator {
   async ValidateFetchFileContent(body: FetchFileContentRequestDto) {
@@ -133,6 +135,63 @@ export class AgentInteractionAPIValidator {
     try {
       const schema = yup.object().shape({
         repo_url: yup.string().strict().required().url(),
+      });
+
+      await schema.validate(body, { abortEarly: false });
+      return true;
+    } catch (err: any) {
+      throw {
+        statusCode: 422,
+        message: "Validation error",
+        data: err.inner.reduce((acc: any, error: any) => {
+          acc[error.path] = error.message;
+          return acc;
+        }, {}),
+      };
+    }
+  }
+
+  async validateUpdateExistingFile(body: UpdateExistingFileRequestDto) {
+    try {
+      const schema = yup.object().shape({
+        repo_url: yup.string().strict().required().url(),
+        branch_name: yup.string().strict().required(),
+        file_path: yup.string().strict().required(),
+        message: yup.string().strict().required(),
+        committer: yup.object().shape({
+          name: yup.string().strict().required(),
+          email: yup.string().strict().email().required(),
+        }),
+        content: yup.string().strict().required(),
+        sha: yup.string().strict().optional(),
+      });
+
+      await schema.validate(body, { abortEarly: false });
+      return true;
+    } catch (err: any) {
+      throw {
+        statusCode: 422,
+        message: "Validation error",
+        data: err.inner.reduce((acc: any, error: any) => {
+          acc[error.path] = error.message;
+          return acc;
+        }, {}),
+      };
+    }
+  }
+
+  async validateCreateNewFile(body: CreateNewFileRequestDto) {
+    try {
+      const schema = yup.object().shape({
+        repo_url: yup.string().strict().required().url(),
+        branch_name: yup.string().strict().required(),
+        file_path: yup.string().strict().required(),
+        message: yup.string().strict().required(),
+        committer: yup.object().shape({
+          name: yup.string().strict().required(),
+          email: yup.string().strict().email().required(),
+        }),
+        content: yup.string().strict().required(),
       });
 
       await schema.validate(body, { abortEarly: false });

@@ -159,10 +159,8 @@ export class GiteaProvider implements GitProvider {
         };
       }
 
-      console.log(`Pull Request created successfully.`);
       return responseData;
     } catch (error: any) {
-      console.error("Error creating Pull Request:", error.message);
       throw error;
     }
   }
@@ -365,6 +363,130 @@ export class GiteaProvider implements GitProvider {
 
       // Extract branch names from the response
       return responseData.map((branch: { name: string }) => branch.name);
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async updateExistingFile(
+    repoFullName: string,
+    branchName: string,
+    filePath: string,
+    message: string,
+    committer: { name: string; email: string },
+    content: string,
+    sha: string
+  ): Promise<any> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${encodeURIComponent(filePath)}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            message,
+            content: Buffer.from(content).toString("base64"),
+            branch: branchName,
+            sha: sha
+              ? sha
+              : await this.getFileSha(repoFullName, filePath, branchName),
+            committer: {
+              name: committer.name,
+              email: committer.email,
+            },
+          }),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to update file: ${response.statusText} - ${responseData.message || ""}`,
+          statusCode: response.status,
+          data: responseData,
+        };
+      }
+
+      return responseData;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async getFileSha(
+    repoFullName: string,
+    filePath: string,
+    branchName: string
+  ): Promise<string> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch file SHA from Gitea: ${response.status} - ${responseData.message}`
+        );
+      }
+
+      return responseData.sha;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async createNewFile(
+    repoFullName: string,
+    branchName: string,
+    filePath: string,
+    message: string,
+    committer: { name: string; email: string },
+    content: string
+  ): Promise<any> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message,
+            committer,
+            content: Buffer.from(content).toString("base64"), // Gitea requires Base64 encoding
+            branch: branchName,
+          }),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to create file: ${response.statusText} - ${responseData.message || ""}`,
+          statusCode: response.status,
+          data: responseData,
+        };
+      }
+
+      return responseData;
     } catch (error: any) {
       throw error;
     }
