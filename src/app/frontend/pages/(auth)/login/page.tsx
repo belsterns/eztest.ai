@@ -54,7 +54,6 @@ export default function LogIn() {
                 alignContent: 'center',
                 justifyContent: 'center',
                 height: 'calc((1 - var(--template-frame-height, 0)) * 100%)',
-                marginTop: 'max(40px - var(--template-frame-height, 0px), 0px)',
                 minHeight: '100%',
               },
               (theme) => ({
