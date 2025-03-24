@@ -1,5 +1,4 @@
 import { GitProvider } from "./GitProvider";
-import { providerMessage } from "../../constants/StaticMessages";
 import prisma from "@/lib/prisma";
 
 export class GitHubProvider implements GitProvider {
