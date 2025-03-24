@@ -5,7 +5,7 @@ const supportEmail = process.env.EMAIL_SUPPORT;
 export const userCreatedEmailTemplate = (user: any, password?: string) => {
   const loginLink = password
     ? `${process.env.NEXTAUTH_URL}/login`
-    : `${process.env.NEXTAUTH_URL}/domain/workspaces`;
+    : `${process.env.NEXTAUTH_URL}/workspaces`;
 
   return ` 
 <!DOCTYPE html>
