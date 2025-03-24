@@ -3,7 +3,7 @@ import { getToken } from "next-auth/jwt";
 
 const frontEndPublicRoutes = ["/login", "/register"];
 const backEndPublicRoutes = ["/api/v1/auth/sign-up"];
-const unprotectedRoutes = ["/about"];
+const unprotectedRoutes = ["/about","/api/v1/webhook"];
 
 const defaultUnAuthorizedRoute = "/login";
 const defaultAuthorizedRoute = "/workspaces";
@@ -15,10 +15,15 @@ export async function middleware(request: NextRequest) {
 
   const isPublicRoute =
     frontEndPublicRoutes.includes(pathname) ||
-    backEndPublicRoutes.includes(pathname);
+    backEndPublicRoutes.some((route) => pathname.startsWith(route));
+  
+  const isUnprotectedRoute = unprotectedRoutes.some((route) => pathname.startsWith(route));
 
-  const isUnprotectedRoute = unprotectedRoutes.includes(pathname);
-
+  // If the route is unprotected, allow access
+  if (isUnprotectedRoute) {
+    return NextResponse.next();
+  }
+ 
   const token =
     process.env.ENVIRONMENT === "local"
       ? await getToken({ req: request, secret })
@@ -27,11 +32,6 @@ export async function middleware(request: NextRequest) {
           secret,
           cookieName: "__Secure-authjs.session-token",
         });
-
-  // If the route is unprotected, allow access
-  if (isUnprotectedRoute) {
-    return NextResponse.next();
-  }
 
   // Handle the root path `/`
   if (pathname === "/") {
