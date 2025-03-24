@@ -153,7 +153,8 @@ export default function Repositories({module}: props){
         setEditRepoData({
             repo_url: data.repo_url,
             uuid: data.uuid,
-            token: data.token
+            token: data.token,
+            host_url: data.host_url
         });
     
         setDrawerData({

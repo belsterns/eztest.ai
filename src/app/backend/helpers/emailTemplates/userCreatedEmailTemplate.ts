@@ -1,9 +1,13 @@
 const logoURL =
   "https://static.wixstatic.com/media/b88f70_b9e36bee94fa4a3c876ba990d7db089b~mv2.png/v1/fill/w_411,h_153,al_c,q_95,enc_avif,quality_auto/EZT.png";
-const loginLink = `${process.env.NEXTAUTH_URL}/${process.env.APP_BASE_PATH}/auth/login`;
 const supportEmail = process.env.EMAIL_SUPPORT;
 
-export const userCreatedEmailTemplate = (user: any, password?: string) => `
+export const userCreatedEmailTemplate = (user: any, password?: string) => {
+  const loginLink = password
+    ? `${process.env.NEXTAUTH_URL}/login`
+    : `${process.env.NEXTAUTH_URL}/domain/workspaces`;
+
+  return ` 
 <!DOCTYPE html>
 <html>
 <head>
@@ -36,3 +40,4 @@ export const userCreatedEmailTemplate = (user: any, password?: string) => `
 </body>
 </html>
 `;
+};
