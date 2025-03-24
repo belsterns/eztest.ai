@@ -1,8 +1,11 @@
 import { CreateBranchRequestDto } from "../../infrastructure/dtos/CreateBranchRequestDto";
+import { CreateNewFileRequestDto } from "../../infrastructure/dtos/CreateNewFileRequestDto";
 import { CreatePullRequestDto } from "../../infrastructure/dtos/CreatePullRequestDto";
 import { FetchFileContentRequestDto } from "../../infrastructure/dtos/FetchFileContentRequestDto";
 import { FetchModifiedFilesRequestDto } from "../../infrastructure/dtos/FetchModifiedFilesRequestDto";
 import { FolderPathDtoRequest } from "../../infrastructure/dtos/FolderPathDtoRequest";
+import { GetAllBranchesRequestDto } from "../../infrastructure/dtos/GetAllBranchesRequestDto";
+import { UpdateExistingFileRequestDto } from "../../infrastructure/dtos/UpdateExistingFileRequestDto";
 import { fetchProvider } from "../../utils/fetchProvider";
 import { AgentInteractionAPIValidator } from "../../validator/AgentInteractionAPIValidator";
 
@@ -95,6 +98,61 @@ export class AgentController {
         `${orgName}/${repoName}`,
         branch_name,
         folder_path
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getAllBranches(body: GetAllBranchesRequestDto) {
+    try {
+      await this.agentInteractionAPIValidator.ValidateGetAllBranches(body);
+
+      const { provider, orgName, repoName } = await fetchProvider(body);
+
+      return await provider.getAllBranches(`${orgName}/${repoName}`);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateExistingFile(body: UpdateExistingFileRequestDto) {
+    try {
+      await this.agentInteractionAPIValidator.validateUpdateExistingFile(body);
+
+      const { branch_name, committer, content, file_path, message, sha } = body;
+
+      const { provider, orgName, repoName } = await fetchProvider(body);
+
+      return await provider.updateExistingFile(
+        `${orgName}/${repoName}`,
+        branch_name,
+        file_path,
+        message,
+        committer,
+        content,
+        sha
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async createNewFile(body: CreateNewFileRequestDto) {
+    try {
+      await this.agentInteractionAPIValidator.validateCreateNewFile(body);
+
+      const { branch_name, committer, content, file_path, message } = body;
+
+      const { provider, orgName, repoName } = await fetchProvider(body);
+
+      return await provider.createNewFile(
+        `${orgName}/${repoName}`,
+        branch_name,
+        file_path,
+        message,
+        committer,
+        content
       );
     } catch (error) {
       throw error;

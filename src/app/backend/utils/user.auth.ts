@@ -4,13 +4,17 @@ import { UnauthorizedException } from "@/app/backend/utils/exceptions";
 import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 
 export async function authenticateUser(request: NextRequest) {
-  const jwt: any = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-    cookieName: "__Secure-authjs.session-token"
-  });
-  console.log(`process.env.AUTH_SECRET in user.auth.ts ----> ${process.env.AUTH_SECRET}`)
-  console.log(`jwt in user.auth.ts ----> ${jwt}`)
+  const jwt: any =
+    process.env.ENVIRONMENT === "local"
+      ? await getToken({
+          req: request,
+          secret: process.env.AUTH_SECRET,
+        })
+      : await getToken({
+          req: request,
+          secret: process.env.AUTH_SECRET,
+          cookieName: "__Secure-authjs.session-token",
+        });
 
   if (!jwt || !jwt.user_info) {
     throw new UnauthorizedException(StaticMessage.NoAccess);
