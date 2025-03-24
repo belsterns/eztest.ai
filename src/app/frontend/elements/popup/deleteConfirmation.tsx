@@ -15,7 +15,7 @@ interface DeletePopupProps {
 }
 
 export default function DeletePopup({ open, element, element_name, handleClose, handleDelete }: DeletePopupProps) {
-  const handleConfirmDelete = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleConfirmDelete = (event: any) => {
     event.preventDefault();
     handleDelete();
     handleClose();
@@ -27,9 +27,18 @@ export default function DeletePopup({ open, element, element_name, handleClose, 
       onClose={handleClose}
       slotProps={{
         paper: {
-          component: 'form',
-          onSubmit: handleConfirmDelete,
-          sx: { backgroundImage: 'none' },
+          component: 'form',  
+          onSubmit: handleConfirmDelete,  
+          sx: {
+            backgroundImage: 'none',
+            position: 'fixed',
+            top: 40,
+            justifyContent: 'center',
+            backgroundColor: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'hsl(211, 95.6%, 8.8%)' 
+                : 'hsl(210, 100%, 97%)',
+          },
         },
       }}
     >
