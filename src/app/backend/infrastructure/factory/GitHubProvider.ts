@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 
@@ -48,7 +49,7 @@ export class GitHubProvider implements GitProvider {
       `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`
     );
   }
-
+  
   async fetchModifiedFiles(
     repoFullName: string,
     branchName: string,
@@ -345,11 +346,6 @@ export class GitHubProvider implements GitProvider {
     try {
       const latestCommitSHA = branchResponse.object.sha;
 
-      console.log(
-        "latestCommitSHA in processBranchAndFiles ------------->> 1",
-        latestCommitSHA
-      );
-
       // Fetch the commit details
       const commitResponse = await fetch(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/commits/${latestCommitSHA}`,
@@ -362,11 +358,6 @@ export class GitHubProvider implements GitProvider {
         }
       );
 
-      console.log(
-        "commitResponse in processBranchAndFiles ------------->> 2",
-        commitResponse
-      );
-
       if (!commitResponse.ok) {
         throw new Error(
           `Failed to fetch commit details: ${commitResponse.statusText}`
@@ -375,16 +366,6 @@ export class GitHubProvider implements GitProvider {
 
       const commitData = await commitResponse.json();
       const parentCommitSHA = commitData.parents?.[0]?.sha;
-
-      console.log(
-        "commitData in processBranchAndFiles ------------->> 3",
-        commitData
-      );
-
-      console.log(
-        "parentCommitSHA in processBranchAndFiles ------------->> 4",
-        parentCommitSHA
-      );
 
       if (!parentCommitSHA) {
         console.error("No parent commit found for the latest commit.");
@@ -406,11 +387,6 @@ export class GitHubProvider implements GitProvider {
         }
       );
 
-      console.log(
-        "compareResponse in processBranchAndFiles ------------->> 5",
-        compareResponse
-      );
-
       if (!compareResponse.ok) {
         throw new Error(
           `Failed to compare commits: ${compareResponse.statusText}`
@@ -419,21 +395,11 @@ export class GitHubProvider implements GitProvider {
 
       const compareData = await compareResponse.json();
 
-      console.log(
-        "compareData in processBranchAndFiles ------------->> 6",
-        compareData
-      );
-
       const changedFiles = compareData.files.map((file: any) => ({
         filename: file.filename,
         status: file.status,
         changes: file.changes,
       }));
-
-      console.log(
-        "changedFiles in processBranchAndFiles ------------->> 7",
-        changedFiles
-      );
 
       // Create the new branch
       // const createBranchResponse = await fetch(
@@ -471,23 +437,12 @@ export class GitHubProvider implements GitProvider {
         changedFiles
       );
 
-      console.log(
-        "repoFiles in processBranchAndFiles ------------->> 9",
-        repoFiles
-      );
-
-      console.log("newBranch" , newBranch);
-      console.log("changedFiles", changedFiles);
-      // console.log("repoFiles", repoFiles);
-
       const formattedRepoFiles = repoFiles.map((file:any) => ({
         name: file.name,
         path: file.path,
         type: file.type,
         content: file.content.content // Extracting only the `content` field from `content`
       }));
-
-      console.log("formattedRepoFiles", formattedRepoFiles);
 
       // Process Langflow response
       const langflowResponse = await fetch(
@@ -517,11 +472,6 @@ export class GitHubProvider implements GitProvider {
         }
       );
 
-      console.log(
-        "langflowResponse in processBranchAndFiles ------------->> 10",
-        langflowResponse
-      );
-
       if (!langflowResponse.ok) {
         throw new Error(
           `Failed to process Langflow response: ${langflowResponse.statusText}`
@@ -530,18 +480,8 @@ export class GitHubProvider implements GitProvider {
 
       const langflowData = await langflowResponse.json();
 
-      console.log(
-        "langflowData in processBranchAndFiles ------------->> 11",
-        langflowData
-      );
-
       const parsedData = JSON.parse(
         langflowData.outputs[0].outputs[0].results.text.data.text
-      );
-
-      console.log(
-        "parsedData in processBranchAndFiles ------------->> 12",
-        parsedData
       );
 
       // Create or update files in the new branch
