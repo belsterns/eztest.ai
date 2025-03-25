@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+import { providerMessage } from "../../constants/StaticMessages";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 
@@ -78,9 +80,13 @@ export class GitHubProvider implements GitProvider {
     baseBranch: string,
     newBranch: string
   ): Promise<any> {
+    console.log("Inside createBranch ----------->>");
+
     const branchData = await this.fetchAPI(
       `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
     );
+
+    console.log("branchData --------->>", branchData);
 
     return this.fetchAPI(
       `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
@@ -95,21 +101,114 @@ export class GitHubProvider implements GitProvider {
     baseBranch: string,
     title: string,
     body: string
-  ): Promise<void> {
-    await this.fetchAPI(
-      `${this.apiBaseUrl}/repos/${repoFullName}/branches/${headBranch}`
-    );
+  ): Promise<any> {
+    try {
+      // Step 1: Ensure the base branch has at least one commit
+      const baseBranchResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/branches/${baseBranch}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
 
-    return this.fetchAPI(
-      `${this.apiBaseUrl}/repos/${repoFullName}/pulls`,
-      "POST",
-      {
-        title,
-        head: headBranch,
-        base: baseBranch,
-        body,
+      if (!baseBranchResponse.ok) {
+        throw new Error(`Base branch '${baseBranch}' does not exist.`);
       }
-    );
+
+      const baseBranchData = await baseBranchResponse.json();
+      if (!baseBranchData.commit) {
+        throw new Error(`Base branch '${baseBranch}' has no commits.`);
+      }
+
+      // Step 2: Ensure the head branch exists
+      const headBranchResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/branches/${headBranch}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      if (!headBranchResponse.ok) {
+        throw new Error(`Head branch '${headBranch}' does not exist.`);
+      }
+
+      // Step 3: Check if commits exist between base and head
+      const compareResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/compare/${baseBranch}...${headBranch}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      const compareData = await compareResponse.json();
+
+      // If no commits exist between branches, attempt to create a PR anyway
+      if (compareResponse.status === 404 || compareData.total_commits === 0) {
+        console.warn(
+          `No new commits found between '${baseBranch}' and '${headBranch}', but proceeding with PR creation.`
+        );
+      }
+
+      // Step 4: Create the Pull Request
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/pulls`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            head: headBranch,
+            base: baseBranch,
+            body,
+          }),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw {
+            message: response.statusText,
+            data: null,
+            statusCode: response.status,
+          };
+        }
+        if (response.status === 422) {
+          throw {
+            message: "Pull request already exists",
+            data: null,
+            statusCode: response.status,
+          };
+        }
+        throw {
+          message: `Failed to create Pull Request: ${response.statusText}`,
+          statusCode: response.status,
+          data: responseData,
+        };
+      }
+
+      console.log("Pull Request created successfully:", responseData);
+      return responseData;
+    } catch (error: any) {
+      throw error;
+    }
   }
 
   async fetchFilesInFolderFromBranch(
@@ -306,6 +405,244 @@ export class GitHubProvider implements GitProvider {
 
       return responseData;
     } catch (error: any) {
+      throw error;
+    }
+  }
+
+  // Function to fetch content for added/modified files only
+  async fetchModifiedFileContents(
+    repoFullName: any,
+    branchName: any,
+    changedFiles: any
+  ): Promise<any> {
+    const files = [];
+
+    // Filter added/modified files and fetch their content
+    for (const file of changedFiles) {
+      if (file.status === "added" || file.status === "modified") {
+        const content = await this.fetchFileContent(
+          repoFullName,
+          branchName,
+          file.filename
+        );
+        files.push({
+          name: file.filename,
+          path: file.filename,
+          type: file.status,
+          content, // Include Base64-encoded content
+        });
+      }
+    }
+    return files;
+  }
+
+  async processBranchAndFiles(
+    branchResponse: any,
+    repoFullName: string,
+    newBranch: string
+  ): Promise<any> {
+    try {
+      const latestCommitSHA = branchResponse.object.sha;
+
+      console.log(
+        "latestCommitSHA in processBranchAndFiles ------------->> 1",
+        latestCommitSHA
+      );
+
+      // Fetch the commit details
+      const commitResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/commits/${latestCommitSHA}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      console.log(
+        "commitResponse in processBranchAndFiles ------------->> 2",
+        commitResponse
+      );
+
+      if (!commitResponse.ok) {
+        throw new Error(
+          `Failed to fetch commit details: ${commitResponse.statusText}`
+        );
+      }
+
+      const commitData = await commitResponse.json();
+      const parentCommitSHA = commitData.parents?.[0]?.sha;
+
+      console.log(
+        "commitData in processBranchAndFiles ------------->> 3",
+        commitData
+      );
+
+      console.log(
+        "parentCommitSHA in processBranchAndFiles ------------->> 4",
+        parentCommitSHA
+      );
+
+      if (!parentCommitSHA) {
+        console.error("No parent commit found for the latest commit.");
+        return NextResponse.json(
+          { message: "No parent commit found for the latest commit" },
+          { status: 400 }
+        );
+      }
+
+      // Compare parent and latest commit
+      const compareResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/compare/${parentCommitSHA}...${latestCommitSHA}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      console.log(
+        "compareResponse in processBranchAndFiles ------------->> 5",
+        compareResponse
+      );
+
+      if (!compareResponse.ok) {
+        throw new Error(
+          `Failed to compare commits: ${compareResponse.statusText}`
+        );
+      }
+
+      const compareData = await compareResponse.json();
+
+      console.log(
+        "compareData in processBranchAndFiles ------------->> 6",
+        compareData
+      );
+
+      const changedFiles = compareData.files.map((file: any) => ({
+        filename: file.filename,
+        status: file.status,
+        changes: file.changes,
+      }));
+
+      console.log(
+        "changedFiles in processBranchAndFiles ------------->> 7",
+        changedFiles
+      );
+
+      // Create the new branch
+      // const createBranchResponse = await fetch(
+      //   `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       Authorization: `token ${this.repoToken}`,
+      //       Accept: "application/vnd.github.v3+json",
+      //       "Content-Type": "application/json",
+      //       "X-Triggered-By": "MyApp",
+      //     },
+      //     body: JSON.stringify({
+      //       ref: `refs/heads/${newBranch}`,
+      //       sha: latestCommitSHA,
+      //     }),
+      //   }
+      // );
+
+      // console.log(
+      //   "createBranchResponse in processBranchAndFiles ------------->> 8",
+      //   createBranchResponse
+      // );
+
+      // if (!createBranchResponse.ok) {
+      //   throw new Error(
+      //     `Failed to create branch: ${createBranchResponse.statusText}`
+      //   );
+      // }
+
+      // Fetch modified file contents
+      const repoFiles = await this.fetchModifiedFileContents(
+        repoFullName,
+        newBranch,
+        changedFiles
+      );
+
+      console.log(
+        "repoFiles in processBranchAndFiles ------------->> 9",
+        repoFiles
+      );
+
+      // Process Langflow response
+      const langflowResponse = await fetch(
+        "https://llmops.ezxplore.com/api/v1/run/42811f5a-1d78-43ba-8641-b01282f9a28e?stream=false",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer sk-0_AqgRr82Nfx2mjIJ1nNqK76sncHhfcLCocyL-Tr0HI`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            output_type: "text",
+            input_type: "text",
+            tweaks: {
+              "JSONCleaner-dGenj": {
+                json_str: JSON.stringify({
+                  message: `Branch '${newBranch}' created successfully.`,
+                  changedFiles,
+                  repoFiles,
+                }),
+                normalize_unicode: true,
+                remove_control_chars: true,
+                validate_json: true,
+              },
+            },
+          }),
+        }
+      );
+
+      console.log(
+        "langflowResponse in processBranchAndFiles ------------->> 10",
+        langflowResponse
+      );
+
+      if (!langflowResponse.ok) {
+        throw new Error(
+          `Failed to process Langflow response: ${langflowResponse.statusText}`
+        );
+      }
+
+      const langflowData = await langflowResponse.json();
+
+      console.log(
+        "langflowData in processBranchAndFiles ------------->> 11",
+        langflowData
+      );
+
+      let parsedData = JSON.parse(
+        langflowData.outputs[0].outputs[0].results.text.data.text
+      );
+
+      console.log(
+        "parsedData in processBranchAndFiles ------------->> 12",
+        parsedData
+      );
+
+      // Create or update files in the new branch
+      for (const file of parsedData.value) {
+        await this.createNewFile(
+          repoFullName,
+          newBranch,
+          file.name,
+          `Adding test file: ${file.name}`,
+          { name: "Automated Commit", email: "bot@example.com" },
+          file.content
+        );
+      }
+    } catch (error: any) {
+      console.error("Error in dummy function:", error);
       throw error;
     }
   }
