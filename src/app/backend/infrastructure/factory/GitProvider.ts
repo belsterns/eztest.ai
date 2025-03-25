@@ -13,7 +13,7 @@ export interface GitProvider {
     repoFullName: string,
     baseBranch: string,
     newBranch: string
-  ): Promise<any>;
+  ): Promise<void>;
   createPullRequest(
     repoFullName: string,
     headBranch: string,
@@ -49,10 +49,5 @@ export interface GitProvider {
     message: string,
     committer: { name: string; email: string },
     content: string
-  ): Promise<any>;
-  processBranchAndFiles(
-    branchResponse: any,
-    repoFullName: string,
-    newBranch: string
   ): Promise<any>;
 }

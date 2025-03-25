@@ -13,9 +13,6 @@ const secret = process.env.AUTH_SECRET;
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  console.log("Request URL ----------->>: ", request.nextUrl.href);
-  console.log("Request Pathname ----------->>: ", pathname);
-
   const isPublicRoute =
     frontEndPublicRoutes.includes(pathname) ||
     backEndPublicRoutes.some((route) => pathname.startsWith(route));
@@ -50,14 +47,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is NOT authenticated and trying to access a PRIVATE route
-  // if (!isPublicRoute && !token) {
-  //   if (request.nextUrl.pathname.startsWith("/api")) {
-  //     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  //   }
-  //   return NextResponse.redirect(
-  //     new URL(defaultUnAuthorizedRoute, request.url)
-  //   );
-  // }
+  if (!isPublicRoute && !token) {
+    if (request.nextUrl.pathname.startsWith("/api")) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.redirect(
+      new URL(defaultUnAuthorizedRoute, request.url)
+    );
+  }
 
   // If user IS authenticated and trying to access a PUBLIC route
   if (isPublicRoute && token) {
