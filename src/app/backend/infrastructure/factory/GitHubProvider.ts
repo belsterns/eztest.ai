@@ -28,7 +28,7 @@ export class GitHubProvider implements GitProvider {
 
       if (!response.ok) {
         throw {
-          message: `Request failed: ${response.statusText}`,
+          message: `Request failed: ${response.statusText} - ${responseData.message || ""}`,
           data: responseData,
           statusCode: response.status,
         };
@@ -49,7 +49,7 @@ export class GitHubProvider implements GitProvider {
       `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`
     );
   }
-  
+
   async fetchModifiedFiles(
     repoFullName: string,
     branchName: string,
@@ -401,35 +401,6 @@ export class GitHubProvider implements GitProvider {
         changes: file.changes,
       }));
 
-      // Create the new branch
-      // const createBranchResponse = await fetch(
-      //   `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
-      //   {
-      //     method: "POST",
-      //     headers: {
-      //       Authorization: `token ${this.repoToken}`,
-      //       Accept: "application/vnd.github.v3+json",
-      //       "Content-Type": "application/json",
-      //       "X-Triggered-By": "MyApp",
-      //     },
-      //     body: JSON.stringify({
-      //       ref: `refs/heads/${newBranch}`,
-      //       sha: latestCommitSHA,
-      //     }),
-      //   }
-      // );
-
-      // console.log(
-      //   "createBranchResponse in processBranchAndFiles ------------->> 8",
-      //   createBranchResponse
-      // );
-
-      // if (!createBranchResponse.ok) {
-      //   throw new Error(
-      //     `Failed to create branch: ${createBranchResponse.statusText}`
-      //   );
-      // }
-
       // Fetch modified file contents
       const repoFiles = await this.fetchModifiedFileContents(
         repoFullName,
@@ -437,11 +408,11 @@ export class GitHubProvider implements GitProvider {
         changedFiles
       );
 
-      const formattedRepoFiles = repoFiles.map((file:any) => ({
+      const formattedRepoFiles = repoFiles.map((file: any) => ({
         name: file.name,
         path: file.path,
         type: file.type,
-        content: file.content.content // Extracting only the `content` field from `content`
+        content: file.content.content, // Extracting only the `content` field from `content`
       }));
 
       // Process Langflow response
@@ -450,7 +421,7 @@ export class GitHubProvider implements GitProvider {
         {
           method: "POST",
           headers: {
-            "x-api-key" : `${process.env.LANGFLOW_API_KEY}`,
+            "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -472,13 +443,15 @@ export class GitHubProvider implements GitProvider {
         }
       );
 
-      if (!langflowResponse.ok) {
-        throw new Error(
-          `Failed to process Langflow response: ${langflowResponse.statusText}`
-        );
-      }
-
       const langflowData = await langflowResponse.json();
+
+      if (!langflowResponse.ok) {
+        throw {
+          message: `Failed to process Langflow response: ${langflowResponse.statusText}`,
+          data: langflowData,
+          statusCode: langflowData?.status,
+        };
+      }
 
       const parsedData = JSON.parse(
         langflowData.outputs[0].outputs[0].results.text.data.text
@@ -491,14 +464,13 @@ export class GitHubProvider implements GitProvider {
           newBranch,
           file.name,
           `Adding test file: ${file.name}`,
-          { name: "Automated Commit", email: "bot@example.com" },
+          { name: "Automated Commit", email: "eztest.ai@commit.com" },
           file.content
         );
       }
     } catch (error: any) {
-      console.error("Error in dummy function:", error);
+      console.error("Error in processBranchAndFiles function:", error);
       throw error;
     }
   }
 }
-
