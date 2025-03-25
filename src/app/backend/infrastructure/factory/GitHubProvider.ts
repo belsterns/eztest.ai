@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 
@@ -79,13 +78,9 @@ export class GitHubProvider implements GitProvider {
     baseBranch: string,
     newBranch: string
   ): Promise<any> {
-    console.log("Inside createBranch ----------->>");
-
     const branchData = await this.fetchAPI(
       `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
     );
-
-    console.log("branchData --------->>", branchData);
 
     return this.fetchAPI(
       `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
@@ -100,114 +95,21 @@ export class GitHubProvider implements GitProvider {
     baseBranch: string,
     title: string,
     body: string
-  ): Promise<any> {
-    try {
-      // Step 1: Ensure the base branch has at least one commit
-      const baseBranchResponse = await fetch(
-        `${this.apiBaseUrl}/repos/${repoFullName}/branches/${baseBranch}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `token ${this.repoToken}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        }
-      );
+  ): Promise<void> {
+    await this.fetchAPI(
+      `${this.apiBaseUrl}/repos/${repoFullName}/branches/${headBranch}`
+    );
 
-      if (!baseBranchResponse.ok) {
-        throw new Error(`Base branch '${baseBranch}' does not exist.`);
+    return this.fetchAPI(
+      `${this.apiBaseUrl}/repos/${repoFullName}/pulls`,
+      "POST",
+      {
+        title,
+        head: headBranch,
+        base: baseBranch,
+        body,
       }
-
-      const baseBranchData = await baseBranchResponse.json();
-      if (!baseBranchData.commit) {
-        throw new Error(`Base branch '${baseBranch}' has no commits.`);
-      }
-
-      // Step 2: Ensure the head branch exists
-      const headBranchResponse = await fetch(
-        `${this.apiBaseUrl}/repos/${repoFullName}/branches/${headBranch}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `token ${this.repoToken}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        }
-      );
-
-      if (!headBranchResponse.ok) {
-        throw new Error(`Head branch '${headBranch}' does not exist.`);
-      }
-
-      // Step 3: Check if commits exist between base and head
-      const compareResponse = await fetch(
-        `${this.apiBaseUrl}/repos/${repoFullName}/compare/${baseBranch}...${headBranch}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `token ${this.repoToken}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        }
-      );
-
-      const compareData = await compareResponse.json();
-
-      // If no commits exist between branches, attempt to create a PR anyway
-      if (compareResponse.status === 404 || compareData.total_commits === 0) {
-        console.warn(
-          `No new commits found between '${baseBranch}' and '${headBranch}', but proceeding with PR creation.`
-        );
-      }
-
-      // Step 4: Create the Pull Request
-      const response = await fetch(
-        `${this.apiBaseUrl}/repos/${repoFullName}/pulls`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `token ${this.repoToken}`,
-            Accept: "application/vnd.github.v3+json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title,
-            head: headBranch,
-            base: baseBranch,
-            body,
-          }),
-        }
-      );
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw {
-            message: response.statusText,
-            data: null,
-            statusCode: response.status,
-          };
-        }
-        if (response.status === 422) {
-          throw {
-            message: "Pull request already exists",
-            data: null,
-            statusCode: response.status,
-          };
-        }
-        throw {
-          message: `Failed to create Pull Request: ${response.statusText}`,
-          statusCode: response.status,
-          data: responseData,
-        };
-      }
-
-      console.log("Pull Request created successfully:", responseData);
-      return responseData;
-    } catch (error: any) {
-      throw error;
-    }
+    );
   }
 
   async fetchFilesInFolderFromBranch(

@@ -13,16 +13,9 @@ export class WebhookController {
     try {
       const branchRef = payload.ref;
 
-      console.log("branchRef ----------->>: ", branchRef);
-
       // Use Factory to get the correct webhook handler (GitHub or GitLab)
       const webhookHandler = GitWebhookHandlerFactory.getHandler(payload);
-
-      console.log("webhookHandler ----------->>: ", webhookHandler);
-      
       const repoFullName = webhookHandler.extractRepoName(payload);
-
-      console.log("repoFullName ----------->>: ", repoFullName);
 
       if (!branchRef || !branchRef.startsWith("refs/heads/")) {
         return NextResponse.json(
@@ -33,8 +26,6 @@ export class WebhookController {
 
       const baseBranch = branchRef.replace("refs/heads/", "");
 
-      console.log("baseBranch ----------->>: ", baseBranch);
-      
       if (baseBranch.endsWith("_unitTest")) {
         console.log("Skipping webhook for unit test branch:", baseBranch);
         return NextResponse.json(
