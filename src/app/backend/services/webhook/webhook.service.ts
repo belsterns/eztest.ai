@@ -2,8 +2,6 @@ import prisma from "@/lib/prisma";
 import { decryptToken } from "@/app/backend/utils/cryptoUtils";
 import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 import { GitProviderFactory } from "../../infrastructure/factory/GitProviderFactory";
-import { log } from "node:console";
-import { NextResponse } from "next/server";
 
 export class WebhookService {
   async findRepositoryByWebhookUuid(webhookUuid: string) {
@@ -29,16 +27,12 @@ export class WebhookService {
     webhookUuid: string
   ) {
     const repository = await this.findRepositoryByWebhookUuid(webhookUuid);
-    log("Repository ------------->>: ", repository);
-
     const repoToken = decryptToken(repository.token);
 
     const provider = GitProviderFactory.getProvider(
       repository.host_url,
       repoToken
     );
-
-    console.log("Provider ------------->>: ", provider);
 
     // Ensure we do not process if it's a full test branch
     if (baseBranch.endsWith("__fullTest")) {
@@ -50,38 +44,17 @@ export class WebhookService {
       };
     }
 
-    const suffix = "_unitTest";
-    const newBranch = `${baseBranch}${suffix}`;
+    const newBranch = `${baseBranch}_unitTest`;
 
-    console.log("newBranch ------------->>: ", newBranch);
+    await provider.createBranch(repoFullName, baseBranch, newBranch);
 
-    const branchResponse = await provider.createBranch(
-      repoFullName,
-      baseBranch,
-      newBranch
-    );
-
-    console.log("branchResponse ------------->>", branchResponse);
-
-    await provider.processBranchAndFiles(
-      branchResponse,
-      repoFullName,
-      newBranch
-    );
-
-    const title = `Add unit tests for branch ${baseBranch}`;
-    const body = `This PR introduces unit tests for the changes made in the branch '${baseBranch}'.`;
-
-    // Create the Pull Request
     await provider.createPullRequest(
       repoFullName,
-      newBranch,
       baseBranch,
-      title,
-      body
+      newBranch,
+      "Unit Tests",
+      "Adding unit tests"
     );
-
-    console.log("After creating Branch -------------------->>");
 
     return { message: `Branch '${newBranch}' created successfully.` };
   }
