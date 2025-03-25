@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 
@@ -27,7 +28,7 @@ export class GitHubProvider implements GitProvider {
 
       if (!response.ok) {
         throw {
-          message: `Request failed: ${response.statusText}`,
+          message: `Request failed: ${response.statusText} - ${responseData.message || ""}`,
           data: responseData,
           statusCode: response.status,
         };
@@ -288,7 +289,7 @@ export class GitHubProvider implements GitProvider {
           body: JSON.stringify({
             message,
             committer,
-            content: Buffer.from(content).toString("base64"),
+            content: content,
             branch: branchName,
           }),
         }
@@ -306,6 +307,169 @@ export class GitHubProvider implements GitProvider {
 
       return responseData;
     } catch (error: any) {
+      throw error;
+    }
+  }
+
+  // Function to fetch content for added/modified files only
+  async fetchModifiedFileContents(
+    repoFullName: any,
+    branchName: any,
+    changedFiles: any
+  ): Promise<any> {
+    const files = [];
+
+    // Filter added/modified files and fetch their content
+    for (const file of changedFiles) {
+      if (file.status === "added" || file.status === "modified") {
+        const content = await this.fetchFileContent(
+          repoFullName,
+          branchName,
+          file.filename
+        );
+        files.push({
+          name: file.filename,
+          path: file.filename,
+          type: file.status,
+          content, // Include Base64-encoded content
+        });
+      }
+    }
+    return files;
+  }
+
+  async processBranchAndFiles(
+    branchResponse: any,
+    repoFullName: string,
+    newBranch: string
+  ): Promise<any> {
+    try {
+      const latestCommitSHA = branchResponse.object.sha;
+
+      // Fetch the commit details
+      const commitResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/commits/${latestCommitSHA}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      if (!commitResponse.ok) {
+        throw new Error(
+          `Failed to fetch commit details: ${commitResponse.statusText}`
+        );
+      }
+
+      const commitData = await commitResponse.json();
+      const parentCommitSHA = commitData.parents?.[0]?.sha;
+
+      if (!parentCommitSHA) {
+        console.error("No parent commit found for the latest commit.");
+        return NextResponse.json(
+          { message: "No parent commit found for the latest commit" },
+          { status: 400 }
+        );
+      }
+
+      // Compare parent and latest commit
+      const compareResponse = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/compare/${parentCommitSHA}...${latestCommitSHA}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      if (!compareResponse.ok) {
+        throw new Error(
+          `Failed to compare commits: ${compareResponse.statusText}`
+        );
+      }
+
+      const compareData = await compareResponse.json();
+
+      const changedFiles = compareData.files.map((file: any) => ({
+        filename: file.filename,
+        status: file.status,
+        changes: file.changes,
+      }));
+
+      // Fetch modified file contents
+      const repoFiles = await this.fetchModifiedFileContents(
+        repoFullName,
+        newBranch,
+        changedFiles
+      );
+
+      const formattedRepoFiles = repoFiles.map((file: any) => ({
+        name: file.name,
+        path: file.path,
+        type: file.type,
+        content: file.content.content, // Extracting only the `content` field from `content`
+      }));
+
+      // Process Langflow response
+      const langflowResponse = await fetch(
+        `https://${process.env.LANGFLOW_API_BASE_URL}/run/cf96d88a-ede6-48c1-b803-b0b524ce5b63?stream=false`,
+        {
+          method: "POST",
+          headers: {
+            "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            output_type: "text",
+            input_type: "text",
+            tweaks: {
+              "JSONCleaner-CIrPn": {
+                json_str: {
+                  message: `Branch '${newBranch}' created successfully.`,
+                  changedFiles,
+                  formattedRepoFiles,
+                },
+                normalize_unicode: true,
+                remove_control_chars: true,
+                validate_json: true,
+              },
+            },
+          }),
+        }
+      );
+
+      const langflowData = await langflowResponse.json();
+
+      if (!langflowResponse.ok) {
+        throw {
+          message: `Failed to process Langflow response: ${langflowResponse.statusText}`,
+          data: langflowData,
+          statusCode: langflowData?.status,
+        };
+      }
+
+      const parsedData = JSON.parse(
+        langflowData.outputs[0].outputs[0].results.text.data.text
+      );
+
+      // Create or update files in the new branch
+      for (const file of parsedData.value) {
+        await this.createNewFile(
+          repoFullName,
+          newBranch,
+          file.name,
+          `Adding test file: ${file.name}`,
+          { name: "Automated Commit", email: "eztest.ai@commit.com" },
+          file.content
+        );
+      }
+    } catch (error: any) {
+      console.error("Error in processBranchAndFiles function:", error);
       throw error;
     }
   }

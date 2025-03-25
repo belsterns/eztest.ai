@@ -558,4 +558,29 @@ export class GitLabProvider implements GitProvider {
       throw error;
     }
   }
+
+  
+  async fetchModifiedFileContents(
+    repoFullName: any,
+    branchName: any,
+    changedFiles: any
+  ): Promise<any>{
+     return {
+      repoFullName,
+      branchName,
+      changedFiles
+     }
+  }
+
+  async processBranchAndFiles(
+      branchResponse: any,
+      repoFullName: string,
+      newBranch: string
+    ): Promise<any> {
+      return {
+        branchResponse,
+        repoFullName,
+        newBranch
+      }
+  }
 }

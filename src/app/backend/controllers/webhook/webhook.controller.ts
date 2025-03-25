@@ -27,7 +27,6 @@ export class WebhookController {
       const baseBranch = branchRef.replace("refs/heads/", "");
 
       if (baseBranch.endsWith("_unitTest")) {
-        console.log("Skipping webhook for unit test branch:", baseBranch);
         return NextResponse.json(
           { message: "Skipping webhook for unit test branch" },
           { status: 200 }
