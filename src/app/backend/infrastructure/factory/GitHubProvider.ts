@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { providerMessage } from "../../constants/StaticMessages";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 
@@ -387,7 +386,7 @@ export class GitHubProvider implements GitProvider {
           body: JSON.stringify({
             message,
             committer,
-            content: Buffer.from(content).toString("base64"),
+            content: content,
             branch: branchName,
           }),
         }
@@ -575,25 +574,38 @@ export class GitHubProvider implements GitProvider {
         repoFiles
       );
 
+      console.log("newBranch" , newBranch);
+      console.log("changedFiles", changedFiles);
+      // console.log("repoFiles", repoFiles);
+
+      const formattedRepoFiles = repoFiles.map((file:any) => ({
+        name: file.name,
+        path: file.path,
+        type: file.type,
+        content: file.content.content // Extracting only the `content` field from `content`
+      }));
+
+      console.log("formattedRepoFiles", formattedRepoFiles);
+
       // Process Langflow response
       const langflowResponse = await fetch(
-        "https://llmops.ezxplore.com/api/v1/run/42811f5a-1d78-43ba-8641-b01282f9a28e?stream=false",
+        "https://langflow.belsterns.in/api/v1/run/cf96d88a-ede6-48c1-b803-b0b524ce5b63?stream=false",
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer sk-0_AqgRr82Nfx2mjIJ1nNqK76sncHhfcLCocyL-Tr0HI`,
+            "x-api-key" : `sk-VsrV7Vq9LWXQVZjzxJNazWQB1NwYpXPruD3J6ZgJV1c`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             output_type: "text",
             input_type: "text",
             tweaks: {
-              "JSONCleaner-dGenj": {
-                json_str: JSON.stringify({
+              "JSONCleaner-CIrPn": {
+                json_str: {
                   message: `Branch '${newBranch}' created successfully.`,
                   changedFiles,
-                  repoFiles,
-                }),
+                  formattedRepoFiles,
+                },
                 normalize_unicode: true,
                 remove_control_chars: true,
                 validate_json: true,
@@ -621,7 +633,7 @@ export class GitHubProvider implements GitProvider {
         langflowData
       );
 
-      let parsedData = JSON.parse(
+      const parsedData = JSON.parse(
         langflowData.outputs[0].outputs[0].results.text.data.text
       );
 
@@ -647,3 +659,4 @@ export class GitHubProvider implements GitProvider {
     }
   }
 }
+

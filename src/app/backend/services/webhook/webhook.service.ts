@@ -3,7 +3,6 @@ import { decryptToken } from "@/app/backend/utils/cryptoUtils";
 import { StaticMessage } from "@/app/backend/constants/StaticMessages";
 import { GitProviderFactory } from "../../infrastructure/factory/GitProviderFactory";
 import { log } from "node:console";
-import { NextResponse } from "next/server";
 
 export class WebhookService {
   async findRepositoryByWebhookUuid(webhookUuid: string) {
