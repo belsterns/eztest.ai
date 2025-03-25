@@ -446,11 +446,11 @@ export class GitHubProvider implements GitProvider {
 
       // Process Langflow response
       const langflowResponse = await fetch(
-        "https://langflow.belsterns.in/api/v1/run/cf96d88a-ede6-48c1-b803-b0b524ce5b63?stream=false",
+        `https://${process.env.LANGFLOW_API_BASE_URL}/run/cf96d88a-ede6-48c1-b803-b0b524ce5b63?stream=false`,
         {
           method: "POST",
           headers: {
-            "x-api-key" : `sk-VsrV7Vq9LWXQVZjzxJNazWQB1NwYpXPruD3J6ZgJV1c`,
+            "x-api-key" : `${process.env.LANGFLOW_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
