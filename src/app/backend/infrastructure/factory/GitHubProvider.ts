@@ -187,6 +187,11 @@ export class GitHubProvider implements GitProvider {
       { ref: `refs/heads/${newBranch}`, sha: branchData.object.sha }
     );
 
+    const filePaths = await this.fetchAllFilePathsFromBranch(
+      repoFullName,
+      newBranch
+    );
+
     const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
 
     await prisma.repositories.update({
@@ -472,5 +477,15 @@ export class GitHubProvider implements GitProvider {
       console.error("Error in processBranchAndFiles function:", error);
       throw error;
     }
+  }
+
+  async fetchAllFilePathsFromBranch(repoFullName: string, branchName: string) {
+    const response = await this.fetchAPI(
+      `${this.apiBaseUrl}/repos/${repoFullName}/git/trees/${branchName}?recursive=1`
+    );
+
+    return response.tree
+      .filter((item: any) => item.type === "blob")
+      .map((file: any) => file.path);
   }
 }
