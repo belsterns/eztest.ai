@@ -103,4 +103,4 @@ export function CustomIcon() {
       <WorkspacesIcon color="inherit" sx={{ fontSize: '1rem' }} />
     </Box>
   );
-}
+} 
