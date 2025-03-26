@@ -1,9 +1,9 @@
-name: Deploy to DEV environment
+name: Deploy to PROD environment
 
 on:
   push:
     branches:
-      - staging
+      - prod
 
 jobs:
   build-push:
@@ -22,13 +22,13 @@ jobs:
         uses: docker/login-action@v2
         with:
           username: ${{ github.actor }}
-          password: ${{ secrets.CONTAINER_REGISTRY_PAT_TOKEN }}
+          password: ${{ secrets.PROD_CONTAINER_REGISTRY_PAT_TOKEN }}
           registry: ghcr.io
 
       - name: Build Docker image
         run: |
           docker build -f ./Dockerfile -t ghcr.io/${{ github.repository }}/app/${{ github.ref_name }}:latest . --no-cache
-          docker build -f ./Dockerfile.db -t ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest . --no-cache
+          docker build -f ./Dockerfile.db.prod -t ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest . --no-cache
 
       - name: Push Docker image to GitHub Container Registry
         run: |
@@ -55,7 +55,7 @@ jobs:
   pull-deploy:
     needs: build-push
     runs-on: ubuntu-latest
-    environment: dev
+    environment: prod
 
     steps:
       - name: Checkout code
@@ -64,7 +64,7 @@ jobs:
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.DEV_SSH_KEY }}
+          ssh-private-key: ${{ secrets.PROD_SSH_KEY }}
 
       - name: Install gettext (for envsubst)
         run: |
@@ -73,13 +73,13 @@ jobs:
 
       - name: Deploy to Server
         env:
-          DEV_SERVER_IP: ${{ secrets.DEV_SERVER_IP }}
-          STAGE_PRJ_PATH: ${{ secrets.STAGE_PRJ_PATH }}
+          PROD_SERVER_IP: ${{ secrets.PROD_SERVER_IP }}
+          PROD_PRJ_PATH: ${{ secrets.PROD_PRJ_PATH }}
         run: |
-          ssh -o LogLevel=verbose -o StrictHostKeyChecking=no ubuntu@${{ secrets.DEV_SERVER_IP }} << EOF
-          sudo docker login --username ${{ github.actor }} --password ${{ secrets.CONTAINER_REGISTRY_PAT_TOKEN }} ghcr.io
+          ssh -o LogLevel=verbose -o StrictHostKeyChecking=no ubuntu@${{ secrets.PROD_SERVER_IP }} << EOF
+          sudo docker login --username ${{ github.actor }} --password ${{ secrets.PROD_CONTAINER_REGISTRY_PAT_TOKEN }} ghcr.io
           sudo docker image pull ghcr.io/${{ github.repository }}/app/${{ github.ref_name }}:latest
           sudo docker image pull ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest
-          sudo docker compose -f ${STAGE_PRJ_PATH}/docker-compose.yml up -d --force-recreate
+          sudo docker compose -f ${PROD_PRJ_PATH}/docker-compose.yml up -d --force-recreate
           sudo docker image prune -f
           EOF
