@@ -118,6 +118,45 @@ export async function createUsersWithWorkspacesAndRepositories() {
   }
 }
 
+export async function createUsersWithWorkspacesAndRepositoriesForProd() {
+  try {
+    let orgRoles = await prisma.org_roles.findMany();
+    if (!orgRoles.length) {
+      console.log("🔄 Creating default organization roles...");
+
+      await prisma.org_roles.createMany({
+        data: [
+          {
+            uuid: uuidv4(),
+            name: "Super Admin",
+            description: "Has full access to all system functionalities",
+          },
+          {
+            uuid: uuidv4(),
+            name: "Workspace Admin",
+            description: "Manages workspace settings and users",
+          },
+          {
+            uuid: uuidv4(),
+            name: "Workspace Member",
+            description: "Has limited access within the workspace",
+          },
+        ],
+        skipDuplicates: true,
+      });
+
+      orgRoles = await prisma.org_roles.findMany();
+
+      console.log("✅ Default roles created:", orgRoles);
+    }
+    console.log("🎉 Seeding complete!");
+  } catch (error) {
+    console.error("❌ Error seeding data:", error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 function parseRepoUrl(url: string): any {
   const match = url.match(/https?:\/\/(.*?)\/(.*?)\/(.*)/);
   if (!match) return null;
