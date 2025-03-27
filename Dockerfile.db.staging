@@ -1,0 +1,14 @@
+FROM node:slim
+
+RUN apt-get update -y \
+&& apt-get install -y openssl
+
+WORKDIR /migrator
+
+COPY package.json package-lock.json ./
+
+COPY ./prisma ./prisma
+
+RUN npm i prisma @prisma/client ts-node
+
+CMD ["sh", "-c", "pwd && ls && npx prisma migrate dev && npx prisma db seed -- --environment prod"]

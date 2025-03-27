@@ -1,4 +1,4 @@
-name: Deploy to DEV environment
+name: Deploy to STAGING environment
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -f ./Dockerfile -t ghcr.io/${{ github.repository }}/app/${{ github.ref_name }}:latest . --no-cache
-          docker build -f ./Dockerfile.db -t ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest . --no-cache
+          docker build -f ./Dockerfile.db.staging -t ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest . --no-cache
 
       - name: Push Docker image to GitHub Container Registry
         run: |
@@ -55,7 +55,7 @@ jobs:
   pull-deploy:
     needs: build-push
     runs-on: ubuntu-latest
-    environment: dev
+    environment: staging
 
     steps:
       - name: Checkout code
@@ -74,12 +74,12 @@ jobs:
       - name: Deploy to Server
         env:
           DEV_SERVER_IP: ${{ secrets.DEV_SERVER_IP }}
-          STAGE_PRJ_PATH: ${{ secrets.STAGE_PRJ_PATH }}
+          STAGING_PRJ_PATH: ${{ secrets.STAGING_PRJ_PATH }}
         run: |
           ssh -o LogLevel=verbose -o StrictHostKeyChecking=no ubuntu@${{ secrets.DEV_SERVER_IP }} << EOF
           sudo docker login --username ${{ github.actor }} --password ${{ secrets.CONTAINER_REGISTRY_PAT_TOKEN }} ghcr.io
           sudo docker image pull ghcr.io/${{ github.repository }}/app/${{ github.ref_name }}:latest
           sudo docker image pull ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest
-          sudo docker compose -f ${STAGE_PRJ_PATH}/docker-compose.yml up -d --force-recreate
+          sudo docker compose -f ${STAGING_PRJ_PATH}/docker-compose.yml up -d --force-recreate
           sudo docker image prune -f
           EOF
