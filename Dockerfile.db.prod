@@ -11,4 +11,4 @@ COPY ./prisma ./prisma
 
 RUN npm i prisma @prisma/client ts-node
 
-CMD ["sh", "-c", "pwd && ls && npx prisma migrate dev && npx prisma db seed -- --environment prod"]
+CMD ["sh", "-c", "pwd && ls && npx prisma migrate deploy && npx prisma db seed -- --environment prod"]
