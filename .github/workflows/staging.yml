@@ -28,7 +28,7 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -f ./Dockerfile -t ghcr.io/${{ github.repository }}/app/${{ github.ref_name }}:latest . --no-cache
-          docker build -f ./Dockerfile.db -t ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest . --no-cache
+          docker build -f ./Dockerfile.db.staging -t ghcr.io/${{ github.repository }}/migrator/${{ github.ref_name }}:latest . --no-cache
 
       - name: Push Docker image to GitHub Container Registry
         run: |
