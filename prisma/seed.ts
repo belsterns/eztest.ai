@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { parseArgs } from "node:util";
 
-import { createUsersWithWorkspacesAndRepositories } from "./seedTables/seedDataToTables";
+import { createUsersWithWorkspacesAndRepositories, createUsersWithWorkspacesAndRepositoriesForProd } from "./seedTables/seedDataToTables";
 
 // npx prisma db seed -- --environment develop
 // npx prisma db seed -- --environment prod
@@ -22,7 +22,7 @@ async function main() {
       await createUsersWithWorkspacesAndRepositories();
       break;
     case "prod":
-      await createUsersWithWorkspacesAndRepositories();
+      await createUsersWithWorkspacesAndRepositoriesForProd();
       break;
     default:
       break;
