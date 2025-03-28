@@ -44,6 +44,10 @@ interface Field {
     options?: { label: string; value: string }[];
 }
   
+interface LoaderState {
+    pageLoader: boolean;
+    [key: string]: boolean; // Allows dynamic keys like `initBtnLoader-1`
+}
 
 interface props {
     module: string
@@ -80,8 +84,8 @@ export default function Repositories({module}: props){
         { label: "Personal Access Token*", name: "token", type: "string", required: true },
         { label: "Custom Domain", name: "host_url", type: "url", required: false },
     ]);
-    const [loader, setLoader] = useState({
-        pageLoader: false
+    const [loader, setLoader] = useState<LoaderState>({
+        pageLoader: false,
     });
     const theme = useTheme();
     const columns = [
@@ -179,18 +183,31 @@ export default function Repositories({module}: props){
     }
 
     const handleInitRepo = async (data: Repository) => {
+        setLoader({ 
+            ...loader, 
+            [`initBtnLoader-${data.id}`]: false 
+          });
         const result = await makeApiCall({
             url: `/api/v1/initialize/${data.uuid}`,
             method: 'POST',
             body: {
                 "repo_url": data.repo_url
             },
-            isShowAlert: true
+            isShowAlert: true,
+            setIsLoading: setLoader,
+            loader: `initBtnLoader-${data.id}`
         });
 
         if (result) {
-           getRepositories();
+           await getRepositories();
         }
+
+        setLoader((prevLoader:any) => {
+            const newLoader: LoaderState = { ...prevLoader };
+            delete newLoader[`initBtnLoader-${data.id}`];
+            return newLoader; 
+        });
+        
     }
 
     const getRepositories = async() => {
@@ -270,6 +287,7 @@ export default function Repositories({module}: props){
                 onEdit={handleEditRepo}
                 onDelete={handleDeleteRepo}
                 onInit={handleInitRepo}
+                initLoader={loader}
                 />
             ) : (
                 <Grid
