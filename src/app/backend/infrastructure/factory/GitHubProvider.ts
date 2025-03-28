@@ -161,43 +161,129 @@ export class GitHubProvider implements GitProvider {
     repoFullName: string,
     baseBranch: string
   ): Promise<any> {
-    const repository = await prisma.repositories.findUnique({
-      where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
-    });
+    try {
+      const repository = await prisma.repositories.findUnique({
+        where: { uuid: repoUuid, user_uuid: userUuid, is_initialized: true },
+      });
 
-    if (repository) {
-      throw {
-        statusCode: 404,
-        message:
-          "Repository already initialized. Please check the repository details.",
-        data: null,
+      if (repository) {
+        throw new Error(
+          "Repository already initialized. Please check the repository details."
+        );
+      }
+
+      const newBranch = `${baseBranch}_fullTest`;
+
+      const branchData = await this.fetchAPI(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
+      );
+
+      await this.fetchAPI(
+        `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
+        "POST",
+        { ref: `refs/heads/${newBranch}`, sha: branchData.object.sha }
+      );
+
+      // Fetch all file paths from the new branch
+      const filePaths = await this.fetchAllFilePathsFromBranch(
+        repoFullName,
+        newBranch
+      );
+
+      // Run Langflow API for initialization
+      const extractedFiles =
+        await this.runLangflowRepoInitialization(filePaths);
+
+      // Create new files in the repository
+      await this.createExtractedFiles(repoFullName, newBranch, extractedFiles);
+
+      // Create a pull request
+      await this.createPullRequest(
+        repoFullName,
+        newBranch,
+        baseBranch,
+        "Initialize Repository with Test Cases",
+        "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
+      );
+
+      await prisma.repositories.update({
+        where: { uuid: repoUuid, user_uuid: userUuid },
+        data: { is_initialized: true },
+      });
+
+      return {
+        message: `Repository initialized successfully, and '${newBranch}' was created for full test generation.`,
       };
+    } catch (error) {
+      throw error;
     }
+  }
 
-    const suffix = "_fullTest";
-    const newBranch = `${baseBranch}${suffix}`;
+  private async runLangflowRepoInitialization(
+    filePaths: string[]
+  ): Promise<{ fileName: string; content: string }[]> {
+    try {
+      const response = await fetch(
+        `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_INITIALIZE_WORKFLOW_ID}?stream=false`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
+          },
+          body: JSON.stringify({
+            output_type: "text",
+            input_type: "text",
+            tweaks: {
+              [`${process.env.LANGFLOW_REPO_INITIALIZE_CUSTOM_COMPONENT_ID}`]: {
+                input_value: JSON.stringify(filePaths),
+              },
+            },
+          }),
+        }
+      );
 
-    const branchData = await this.fetchAPI(
-      `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
-    );
+      const result = await response.json();
+      const apiTextData =
+        result?.outputs?.[0]?.outputs?.[0]?.results?.text?.data?.text;
 
-    await this.fetchAPI(
-      `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
-      "POST",
-      { ref: `refs/heads/${newBranch}`, sha: branchData.object.sha }
-    );
+      if (!apiTextData) return [];
 
-    const allFiles = await this.fetchAllFiles(repoFullName, baseBranch);
+      const parsedData = JSON.parse(apiTextData);
+      return (
+        parsedData?.value?.map((file: any) => ({
+          fileName: file.name,
+          content: file.content,
+        })) || []
+      );
+    } catch (error) {
+      console.error("Error running Langflow API:", error);
+      return [];
+    }
+  }
 
-    await prisma.repositories.update({
-      where: { uuid: repoUuid, user_uuid: userUuid },
-      data: { is_initialized: true },
-    });
-
-    return {
-      message: `Branch '${newBranch}' created successfully for full test generation.`,
-      allFiles,
-    };
+  private async createExtractedFiles(
+    repoFullName: string,
+    newBranch: string,
+    extractedFiles: { fileName: string; content: string }[]
+  ) {
+    for (const file of extractedFiles) {
+      try {
+        await this.createNewFile(
+          repoFullName,
+          newBranch,
+          file.fileName,
+          `Created new file: ${file.fileName}`,
+          {
+            name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+            email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+          },
+          file.content
+        );
+      } catch (error) {
+        throw error;
+      }
+    }
   }
 
   async createOrUpdateFile(
@@ -417,7 +503,7 @@ export class GitHubProvider implements GitProvider {
 
       // Process Langflow response
       const langflowResponse = await fetch(
-        `https://${process.env.LANGFLOW_API_BASE_URL}/run/cf96d88a-ede6-48c1-b803-b0b524ce5b63?stream=false`,
+        `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_COMMIT_WORKFLOW_ID}?stream=false`,
         {
           method: "POST",
           headers: {
@@ -428,7 +514,7 @@ export class GitHubProvider implements GitProvider {
             output_type: "text",
             input_type: "text",
             tweaks: {
-              "JSONCleaner-CIrPn": {
+              [`${process.env.LANGFLOW_REPO_COMMIT_CUSTOM_COMPONENT_ID}`]: {
                 json_str: {
                   message: `Branch '${newBranch}' created successfully.`,
                   changedFiles,
@@ -464,7 +550,10 @@ export class GitHubProvider implements GitProvider {
           newBranch,
           file.name,
           `Adding test file: ${file.name}`,
-          { name: "Automated Commit", email: "eztest.ai@commit.com" },
+          {
+            name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+            email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+          },
           file.content
         );
       }
@@ -472,5 +561,15 @@ export class GitHubProvider implements GitProvider {
       console.error("Error in processBranchAndFiles function:", error);
       throw error;
     }
+  }
+
+  async fetchAllFilePathsFromBranch(repoFullName: string, branchName: string) {
+    const response = await this.fetchAPI(
+      `${this.apiBaseUrl}/repos/${repoFullName}/git/trees/${branchName}?recursive=1`
+    );
+
+    return response.tree
+      .filter((item: any) => item.type === "blob")
+      .map((file: any) => file.path);
   }
 }
