@@ -519,7 +519,7 @@ export class GitHubProvider implements GitProvider {
 
       // Process Langflow response
       const langflowResponse = await fetch(
-        `https://${process.env.LANGFLOW_API_BASE_URL}/run/cf96d88a-ede6-48c1-b803-b0b524ce5b63?stream=false`,
+        `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_COMMIT_WORKFLOW_ID}?stream=false`,
         {
           method: "POST",
           headers: {
@@ -530,7 +530,7 @@ export class GitHubProvider implements GitProvider {
             output_type: "text",
             input_type: "text",
             tweaks: {
-              "JSONCleaner-CIrPn": {
+              [`${process.env.LANGFLOW_REPO_COMMIT_CUSTOM_COMPONENT_ID}`]: {
                 json_str: {
                   message: `Branch '${newBranch}' created successfully.`,
                   changedFiles,
@@ -566,7 +566,10 @@ export class GitHubProvider implements GitProvider {
           newBranch,
           file.name,
           `Adding test file: ${file.name}`,
-          { name: "Automated Commit", email: "eztest.ai@commit.com" },
+          {
+            name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+            email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+          },
           file.content
         );
       }
