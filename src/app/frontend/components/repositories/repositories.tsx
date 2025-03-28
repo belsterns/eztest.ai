@@ -81,7 +81,8 @@ export default function Repositories({module}: props){
         { label: "Custom Domain", name: "host_url", type: "url", required: false },
     ]);
     const [loader, setLoader] = useState({
-        pageLoader: false
+        pageLoader: false,
+        initBtnLoader: false
     });
     const theme = useTheme();
     const columns = [
@@ -185,7 +186,9 @@ export default function Repositories({module}: props){
             body: {
                 "repo_url": data.repo_url
             },
-            isShowAlert: true
+            isShowAlert: true,
+            setIsLoading: setLoader,
+            loader: 'initBtnLoader'
         });
 
         if (result) {
@@ -270,6 +273,7 @@ export default function Repositories({module}: props){
                 onEdit={handleEditRepo}
                 onDelete={handleDeleteRepo}
                 onInit={handleInitRepo}
+                initLoader={loader.initBtnLoader}
                 />
             ) : (
                 <Grid
