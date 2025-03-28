@@ -5,6 +5,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Repository } from './repositories';
 import DeletePopup from '../../elements/popup/deleteConfirmation';
+import AppLoader from '../../elements/loader/loader';
 
 interface CustomizedDataGridProps {
   columns: { field: string; headerName: string; width: number; renderCell?: (params: any) => React.ReactNode }[];
@@ -12,9 +13,10 @@ interface CustomizedDataGridProps {
   onInit?: (repo: Repository) => void;
   onEdit?: (repo: Repository) => void;
   onDelete?: (repo: Repository) => void;
+  initLoader: { [key: string]: boolean };
 }
 
-export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDelete }: CustomizedDataGridProps) {
+export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDelete, initLoader }: CustomizedDataGridProps) {
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<Repository | null>(null);
 
@@ -40,7 +42,11 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
           onClick={() => onInit?.(params.row)}
           sx={{ marginRight: 1 }}
         >
-          Initialize
+          {initLoader[`initBtnLoader-${params.row.id}`] ? (
+            <AppLoader size={18} sx={{ color: "white" }} />
+          ) : (
+            "Initialize"
+          )}
         </Button>
         <IconButton color="primary" onClick={() => onEdit?.(params.row)}>
           <EditIcon />
