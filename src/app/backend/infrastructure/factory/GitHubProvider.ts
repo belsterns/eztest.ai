@@ -269,21 +269,6 @@ export class GitHubProvider implements GitProvider {
   ) {
     for (const file of extractedFiles) {
       try {
-        let content;
-
-        if (file.fileName.includes("test.js")) {
-          content = Buffer.from(
-            `// Auto-generated test file
-              describe('Sample Test', () => {
-                it('should pass', () => {
-                  expect(true).toBe(true);
-                });
-              });`
-          ).toString("base64");
-        } else {
-          content = file.content;
-        }
-
         await this.createNewFile(
           repoFullName,
           newBranch,
@@ -293,7 +278,7 @@ export class GitHubProvider implements GitProvider {
             name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
             email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
           },
-          content
+          file.content
         );
       } catch (error) {
         throw error;
