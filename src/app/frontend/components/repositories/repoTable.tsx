@@ -13,7 +13,7 @@ interface CustomizedDataGridProps {
   onInit?: (repo: Repository) => void;
   onEdit?: (repo: Repository) => void;
   onDelete?: (repo: Repository) => void;
-  initLoader: boolean;
+  initLoader: { [key: string]: boolean };
 }
 
 export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDelete, initLoader }: CustomizedDataGridProps) {
@@ -42,11 +42,11 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
           onClick={() => onInit?.(params.row)}
           sx={{ marginRight: 1 }}
         >
-          {initLoader ? (
+          {initLoader[`initBtnLoader-${params.row.id}`] ? (
             <AppLoader size={18} sx={{ color: "white" }} />
-          ) :
+          ) : (
             "Initialize"
-          }
+          )}
         </Button>
         <IconButton color="primary" onClick={() => onEdit?.(params.row)}>
           <EditIcon />
