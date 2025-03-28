@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
-import { brand } from "@/app/frontend/services/themeprovidor/theme/themePrimitives";
 
 export class GitHubProvider implements GitProvider {
   constructor(
