@@ -41,16 +41,31 @@ export class WebhookService {
       };
     }
 
-    const newBranch = `${baseBranch}_unitTest`;
+    const suffix = "_unitTest";
+    const newBranch = `${baseBranch}${suffix}`;
 
-    await provider.createBranch(repoFullName, baseBranch, newBranch);
-
-    await provider.createPullRequest(
+    const branchResponse = await provider.createBranch(
       repoFullName,
       baseBranch,
+      newBranch
+    );
+
+    await provider.processBranchAndFiles(
+      branchResponse,
+      repoFullName,
+      newBranch
+    );
+
+    const title = `Add unit tests for branch ${baseBranch}`;
+    const body = `This PR introduces unit tests for the changes made in the branch '${baseBranch}'.`;
+
+    // Create the Pull Request
+    await provider.createPullRequest(
+      repoFullName,
       newBranch,
-      "Unit Tests",
-      "Adding unit tests"
+      baseBranch,
+      title,
+      body
     );
 
     return { message: `Branch '${newBranch}' created successfully.` };

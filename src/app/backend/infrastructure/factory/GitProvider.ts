@@ -50,4 +50,9 @@ export interface GitProvider {
     committer: { name: string; email: string },
     content: string
   ): Promise<any>;
+  processBranchAndFiles(
+    branchResponse: any,
+    repoFullName: string,
+    newBranch: string
+  ): Promise<any>;
 }
