@@ -377,15 +377,15 @@ export class GitHubProvider implements GitProvider {
             committer,
             content: content,
             branch: branchName,
+            sha: await this.getFileSha(repoFullName, filePath, branchName),
           }),
         }
       );
-
       const responseData = await response.json();
 
       if (!response.ok) {
         throw {
-          message: `Failed to create file: ${response.statusText} - ${responseData.message || ""}`,
+          message: `Failed to create/update file: ${response.statusText} - ${responseData.message || ""}`,
           statusCode: response.status,
           data: responseData,
         };
