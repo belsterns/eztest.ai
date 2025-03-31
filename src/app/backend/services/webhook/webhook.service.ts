@@ -35,10 +35,8 @@ export class WebhookService {
     );
 
     // Ensure we do not process if it's a full test branch
-    if (baseBranch.endsWith("__fullTest")) {
-      return {
-        message: `Branch '${baseBranch}' is a full test branch. No further action is taken.`,
-      };
+    if (baseBranch.endsWith("_fullTest")) {
+      return null;
     }
 
     const suffix = "_unitTest";
