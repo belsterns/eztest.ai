@@ -194,18 +194,20 @@ export class GitHubProvider implements GitProvider {
       // Run Langflow API for initialization
       const extractedFiles =
         await this.runLangflowRepoInitialization(filePaths);
+      
+      if(extractedFiles.length) {
+          // Create new files in the repository
+        await this.createExtractedFiles(repoFullName, newBranch, extractedFiles);
 
-      // Create new files in the repository
-      await this.createExtractedFiles(repoFullName, newBranch, extractedFiles);
-
-      // Create a pull request
-      await this.createPullRequest(
-        repoFullName,
-        newBranch,
-        baseBranch,
-        "Initialize Repository with Test Cases",
-        "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
-      );
+        // Create a pull request
+        await this.createPullRequest(
+          repoFullName,
+          newBranch,
+          baseBranch,
+          "Initialize Repository with Test Cases",
+          "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
+        );
+      }
 
       await prisma.repositories.update({
         where: { uuid: repoUuid, user_uuid: userUuid },
