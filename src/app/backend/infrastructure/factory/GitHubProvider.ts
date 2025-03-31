@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
+import fetch from "node-fetch";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -24,7 +25,7 @@ export class GitHubProvider implements GitProvider {
         body: body ? JSON.stringify(body) : undefined,
       });
 
-      const responseData = await response.json();
+      const responseData: any = await response.json();
 
       if (!response.ok) {
         throw {
@@ -193,18 +194,20 @@ export class GitHubProvider implements GitProvider {
       // Run Langflow API for initialization
       const extractedFiles =
         await this.runLangflowRepoInitialization(filePaths);
+      
+      if(extractedFiles.length) {
+          // Create new files in the repository
+        await this.createExtractedFiles(repoFullName, newBranch, extractedFiles);
 
-      // Create new files in the repository
-      await this.createExtractedFiles(repoFullName, newBranch, extractedFiles);
-
-      // Create a pull request
-      await this.createPullRequest(
-        repoFullName,
-        newBranch,
-        baseBranch,
-        "Initialize Repository with Test Cases",
-        "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
-      );
+        // Create a pull request
+        await this.createPullRequest(
+          repoFullName,
+          newBranch,
+          baseBranch,
+          "Initialize Repository with Test Cases",
+          "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
+        );
+      }
 
       await prisma.repositories.update({
         where: { uuid: repoUuid, user_uuid: userUuid },
@@ -243,22 +246,30 @@ export class GitHubProvider implements GitProvider {
         }
       );
 
-      const result = await response.json();
+      const result: any = await response.json();
+
       const apiTextData =
         result?.outputs?.[0]?.outputs?.[0]?.results?.text?.data?.text;
+      if (!apiTextData) {
+        console.error("Unexpected API response format.");
+        throw {
+          message: `Unexpected API response format.`,
+          data: null,
+          statusCode: 400,
+        };
+      }
 
-      if (!apiTextData) return [];
-
-      const parsedData = JSON.parse(apiTextData);
-      return (
-        parsedData?.value?.map((file: any) => ({
+      try {
+        const parsedData = JSON.parse(apiTextData);
+        return parsedData?.value?.map((file: any) => ({
           fileName: file.name,
           content: file.content,
-        })) || []
-      );
-    } catch (error) {
-      console.error("Error running Langflow API:", error);
-      return [];
+        }));
+      } catch (parseError) {
+        throw parseError;
+      }
+    } catch (error: any) {
+      throw error;
     }
   }
 
@@ -269,7 +280,7 @@ export class GitHubProvider implements GitProvider {
   ) {
     for (const file of extractedFiles) {
       try {
-        await this.createNewFile(
+        await this.createNewFileForInitializeRepo(
           repoFullName,
           newBranch,
           file.fileName,
@@ -381,7 +392,51 @@ export class GitHubProvider implements GitProvider {
           }),
         }
       );
-      const responseData = await response.json();
+
+      const responseData: any = await response.json();
+
+      if (!response.ok) {
+        throw {
+          message: `Failed to create/update file: ${response.statusText} - ${responseData.message || ""}`,
+          statusCode: response.status,
+          data: responseData,
+        };
+      }
+
+      return responseData;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  async createNewFileForInitializeRepo(
+    repoFullName: string,
+    branchName: string,
+    filePath: string,
+    message: string,
+    committer: { name: string; email: string },
+    content: string
+  ): Promise<any> {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `token ${this.repoToken}`,
+            Accept: "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message,
+            committer,
+            content: content,
+            branch: branchName,
+          }),
+        }
+      );
+
+      const responseData: any = await response.json();
 
       if (!response.ok) {
         throw {
@@ -450,7 +505,7 @@ export class GitHubProvider implements GitProvider {
         );
       }
 
-      const commitData = await commitResponse.json();
+      const commitData: any = await commitResponse.json();
       const parentCommitSHA = commitData.parents?.[0]?.sha;
 
       if (!parentCommitSHA) {
@@ -479,7 +534,7 @@ export class GitHubProvider implements GitProvider {
         );
       }
 
-      const compareData = await compareResponse.json();
+      const compareData: any = await compareResponse.json();
 
       const changedFiles = compareData.files.map((file: any) => ({
         filename: file.filename,
@@ -529,7 +584,7 @@ export class GitHubProvider implements GitProvider {
         }
       );
 
-      const langflowData = await langflowResponse.json();
+      const langflowData: any = await langflowResponse.json();
 
       if (!langflowResponse.ok) {
         throw {

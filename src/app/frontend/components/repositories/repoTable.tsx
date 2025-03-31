@@ -41,6 +41,7 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
           size="small"
           onClick={() => onInit?.(params.row)}
           sx={{ marginRight: 1 }}
+          disabled={params.row.is_initialized} 
         >
           {initLoader[`initBtnLoader-${params.row.id}`] ? (
             <AppLoader size={18} sx={{ color: "white" }} />
