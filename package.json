@@ -36,6 +36,7 @@
     "jsonwebtoken": "^9.0.2",
     "next": "15.1.6",
     "next-auth": "^5.0.0-beta.25",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.9",
     "octokit": "^4.1.0",
     "prettier": "^3.5.1",
