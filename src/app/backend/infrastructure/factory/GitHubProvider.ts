@@ -388,7 +388,7 @@ export class GitHubProvider implements GitProvider {
             committer,
             content: content,
             branch: branchName,
-            sha: await this.getFileSha(repoFullName, filePath, branchName),
+            // sha: await this.getFileSha(repoFullName, filePath, branchName),
           }),
         }
       );
