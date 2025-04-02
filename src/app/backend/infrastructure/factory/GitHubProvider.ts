@@ -226,21 +226,46 @@ export class GitHubProvider implements GitProvider {
     filePaths: string[]
   ): Promise<{ fileName: string; content: string }[]> {
     try {
+      // const response = await fetch(
+      //   `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_INITIALIZE_WORKFLOW_ID}?stream=false`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //       "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
+      //     },
+      //     body: JSON.stringify({
+      //       output_type: "text",
+      //       input_type: "text",
+      //       tweaks: {
+      //         [`${process.env.LANGFLOW_REPO_INITIALIZE_CUSTOM_COMPONENT_ID}`]: {
+      //           input_value: JSON.stringify(filePaths),
+      //         },
+      //       },
+      //     }),
+      //   }
+      // );
+
       const response = await fetch(
         `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_INITIALIZE_WORKFLOW_ID}?stream=false`,
         {
           method: "POST",
           headers: {
+            "Authorization": `Bearer ${process.env.LANGFLOW_REPO_INITIALIZE_BEARER_TOKEN}`,
             "Content-Type": "application/json",
             "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
           },
           body: JSON.stringify({
+            input_value: JSON.stringify(filePaths),
             output_type: "text",
             input_type: "text",
             tweaks: {
-              [`${process.env.LANGFLOW_REPO_INITIALIZE_CUSTOM_COMPONENT_ID}`]: {
-                input_value: JSON.stringify(filePaths),
-              },
+              "AzureOpenAIModel-hMMij": {},
+              "TextOutput-2V1pO": {},
+              "EncodesBase64CustomJSON-kCgN4": {},
+              "JSONCleaner-Zn1Ea": {},
+              "Prompt-X8Zv1": {},
+              "CustomComponent-uWQ9B": {}
             },
           }),
         }
@@ -557,11 +582,39 @@ export class GitHubProvider implements GitProvider {
       }));
 
       // Process Langflow response
+      // const langflowResponse = await fetch(
+      //   `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_COMMIT_WORKFLOW_ID}?stream=false`,
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       output_type: "text",
+      //       input_type: "text",
+      //       tweaks: {
+      //         [`${process.env.LANGFLOW_REPO_COMMIT_CUSTOM_COMPONENT_ID}`]: {
+      //           json_str: {
+      //             message: `Branch '${newBranch}' created successfully.`,
+      //             changedFiles,
+      //             formattedRepoFiles,
+      //           },
+      //           normalize_unicode: true,
+      //           remove_control_chars: true,
+      //           validate_json: true,
+      //         },
+      //       },
+      //     }),
+      //   }
+      // );
+
       const langflowResponse = await fetch(
         `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_COMMIT_WORKFLOW_ID}?stream=false`,
         {
           method: "POST",
           headers: {
+            "Authorization": "Bearer <TOKEN>",
             "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
             "Content-Type": "application/json",
           },
