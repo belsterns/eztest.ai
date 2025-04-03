@@ -217,28 +217,28 @@ export class GitHubProvider implements GitProvider {
         console.error("Error extracting test files:", error);
       }
 
-      if (extractedFiles.length) {
-        // Create new files in the repository
-        await this.createExtractedFiles(
-          repoFullName,
-          newBranch,
-          extractedFiles
-        );
+      // if (extractedFiles.length) {
+      //   // Create new files in the repository
+      //   await this.createExtractedFiles(
+      //     repoFullName,
+      //     newBranch,
+      //     extractedFiles
+      //   );
 
-        // Create a pull request
-        await this.createPullRequest(
-          repoFullName,
-          newBranch,
-          baseBranch,
-          "Initialize Repository with Test Cases",
-          "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
-        );
-      }
+      //   // Create a pull request
+      //   await this.createPullRequest(
+      //     repoFullName,
+      //     newBranch,
+      //     baseBranch,
+      //     "Initialize Repository with Test Cases",
+      //     "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
+      //   );
+      // }
 
-      await prisma.repositories.update({
-        where: { uuid: repoUuid, user_uuid: userUuid },
-        data: { is_initialized: true },
-      });
+      // await prisma.repositories.update({
+      //   where: { uuid: repoUuid, user_uuid: userUuid },
+      //   data: { is_initialized: true },
+      // });
 
       return {
         message: `Repository initialized successfully, and '${newBranch}' was created for full test generation.`,
