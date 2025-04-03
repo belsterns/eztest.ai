@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 import fetch from "node-fetch";
+import { AzureChatOpenAI } from "@langchain/openai";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -186,18 +187,43 @@ export class GitHubProvider implements GitProvider {
       );
 
       // Fetch all file paths from the new branch
-      const filePaths = await this.fetchAllFilePathsFromBranch(
+      const files = await this.fetchAllFilePathsFromBranch(
         repoFullName,
         newBranch
       );
 
-      // Run Langflow API for initialization
-      const extractedFiles =
-        await this.runLangflowRepoInitialization(filePaths);
-      
-      if(extractedFiles.length) {
-          // Create new files in the repository
-        await this.createExtractedFiles(repoFullName, newBranch, extractedFiles);
+      const fileContent = await this.fetchAndDecodeFiles(files);
+
+      const filesWithContents = fileContent.filter((item) =>
+        item.filePath.endsWith(".js")
+      );
+
+      const model = new AzureChatOpenAI({
+        azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY!,
+        azureOpenAIApiInstanceName: "azureopenai-BELSTERNS-southindia-dev-01",
+        azureOpenAIApiVersion: "2024-10-01-preview",
+        azureOpenAIApiDeploymentName: "gpt-4o-mini",
+        temperature: 0.8,
+      });
+
+      try {
+        for (const file of filesWithContents) {
+          const prompt = `Analyze the following file and write the unit test case for this code: ${file.content}. file path ${file.filePath}`;
+
+          const response: any = await model.invoke(prompt);
+          console.log("Azure OpenAI Response: ------------>>", response);
+        }
+      } catch (error) {
+        console.error("Error extracting test files:", error);
+      }
+
+      if (extractedFiles.length) {
+        // Create new files in the repository
+        await this.createExtractedFiles(
+          repoFullName,
+          newBranch,
+          extractedFiles
+        );
 
         // Create a pull request
         await this.createPullRequest(
@@ -222,55 +248,21 @@ export class GitHubProvider implements GitProvider {
     }
   }
 
-  private async runLangflowRepoInitialization(
-    filePaths: string[]
-  ): Promise<{ fileName: string; content: string }[]> {
-    try {
-      const response = await fetch(
-        `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_INITIALIZE_WORKFLOW_ID}?stream=false`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
-          },
-          body: JSON.stringify({
-            output_type: "text",
-            input_type: "text",
-            tweaks: {
-              [`${process.env.LANGFLOW_REPO_INITIALIZE_CUSTOM_COMPONENT_ID}`]: {
-                input_value: JSON.stringify(filePaths),
-              },
-            },
-          }),
+  private async fetchAndDecodeFiles(files: any) {
+    const fileContents = await Promise.all(
+      files.map(async (file: any) => {
+        try {
+          const response = await this.fetchAPI(file.url);
+
+          const decodedContent = atob(response.content);
+          return { filePath: file.filePath, content: decodedContent };
+        } catch (error) {
+          console.error(`Error fetching file ${file.filePath}:`, error);
+          return { filePath: file.filePath, content: null };
         }
-      );
-
-      const result: any = await response.json();
-
-      const apiTextData =
-        result?.outputs?.[0]?.outputs?.[0]?.results?.text?.data?.text;
-      if (!apiTextData) {
-        console.error("Unexpected API response format.");
-        throw {
-          message: `Unexpected API response format.`,
-          data: null,
-          statusCode: 400,
-        };
-      }
-
-      try {
-        const parsedData = JSON.parse(apiTextData);
-        return parsedData?.value?.map((file: any) => ({
-          fileName: file.name,
-          content: file.content,
-        }));
-      } catch (parseError) {
-        throw parseError;
-      }
-    } catch (error: any) {
-      throw error;
-    }
+      })
+    );
+    return fileContents;
   }
 
   private async createExtractedFiles(
@@ -625,6 +617,10 @@ export class GitHubProvider implements GitProvider {
 
     return response.tree
       .filter((item: any) => item.type === "blob")
-      .map((file: any) => file.path);
+      .map((file: any) => ({
+        filePath: file.path,
+        sha: file.sha,
+        url: file.url,
+      }));
   }
 }
