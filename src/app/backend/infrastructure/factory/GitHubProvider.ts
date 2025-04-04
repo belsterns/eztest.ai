@@ -3,6 +3,7 @@ import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 import fetch from "node-fetch";
 import { AzureChatOpenAI } from "@langchain/openai";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -174,7 +175,7 @@ export class GitHubProvider implements GitProvider {
         );
       }
 
-      const newBranch = `${baseBranch}_fullTest`;
+      const newBranch: string = `${baseBranch}_fullTest`;
 
       const branchData = await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
@@ -191,12 +192,7 @@ export class GitHubProvider implements GitProvider {
         repoFullName,
         newBranch
       );
-
-      const fileContent = await this.fetchAndDecodeFiles(files);
-
-      const filesWithContents = fileContent.filter((item) =>
-        item.filePath.endsWith(".js")
-      );
+      const parsedFilePaths = files.map((file: any) => file.filePath);
 
       const model = new AzureChatOpenAI({
         azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY!,
@@ -207,38 +203,53 @@ export class GitHubProvider implements GitProvider {
       });
 
       try {
-        for (const file of filesWithContents) {
-          const prompt = `Analyze the following file and write the unit test case for this code: ${file.content}. file path ${file.filePath}`;
+        const prompt = ChatPromptTemplate.fromTemplate(
+          "You are an Express.js programmer. Your task is to analyze the provided file paths from the given branch, which are {filePaths}, to determine whether Jest configuration files exist for running unit tests. If Jest configuration files are found, return an empty array. If Jest configuration files are missing, generate and return the required Jest configuration files as an array of objects. Each object must contain a testPath, representing the expected file path for the Jest configuration, and a testContent, containing the required Jest configuration file content, ensuring compatibility with the project's structure. The Jest configuration file content should be well-formatted, with each statement on a new line and proper indentation. Do not write the entire configuration in a single line. The response must be a strictly valid JSON array without any formatting such as markdown, backticks, or language annotations, and should not contain any extra characters."
+        );
 
-          const response: any = await model.invoke(prompt);
-          console.log("Azure OpenAI Response: ------------>>", response);
+        const chain = prompt.pipe(model);
+
+        const response: any = await chain.invoke({
+          filePaths: parsedFilePaths,
+        });
+
+        const parsedContent =
+          typeof response.content === "string"
+            ? JSON.parse(response.content)
+            : response.content;
+   
+        if (parsedContent.length) {
+          for (const file of parsedContent) {
+            await this.createNewFileForInitializeRepo(
+              repoFullName,
+              newBranch,
+              file.testPath,
+              `Added unit test file ${file.testPath}`,
+              {
+                name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+                email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+              },
+              Buffer.from(file.testContent).toString("base64")
+            );
+          }
+
+          await this.createPullRequest(
+            repoFullName,
+            newBranch,
+            baseBranch,
+            `Initialize Repository with Test Configuration`,
+            `This pull request initializes the repository by creating a new branch and adding test configuration. It includes auto-generated test config files.`
+          );
         }
-      } catch (error) {
-        console.error("Error extracting test files:", error);
+
+      } catch (error: any) {
+        console.error("Error extracting test files:", error?.data.errors);
       }
 
-      // if (extractedFiles.length) {
-      //   // Create new files in the repository
-      //   await this.createExtractedFiles(
-      //     repoFullName,
-      //     newBranch,
-      //     extractedFiles
-      //   );
-
-      //   // Create a pull request
-      //   await this.createPullRequest(
-      //     repoFullName,
-      //     newBranch,
-      //     baseBranch,
-      //     "Initialize Repository with Test Cases",
-      //     "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
-      //   );
-      // }
-
-      // await prisma.repositories.update({
-      //   where: { uuid: repoUuid, user_uuid: userUuid },
-      //   data: { is_initialized: true },
-      // });
+      await prisma.repositories.update({
+        where: { uuid: repoUuid, user_uuid: userUuid },
+        data: { is_initialized: true },
+      });
 
       return {
         message: `Repository initialized successfully, and '${newBranch}' was created for full test generation.`,
