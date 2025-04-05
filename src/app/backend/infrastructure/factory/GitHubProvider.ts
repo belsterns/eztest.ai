@@ -184,67 +184,146 @@ export class GitHubProvider implements GitProvider {
       await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
         "POST",
-        { ref: `refs/heads/${newBranch}`, sha: branchData.object.sha }
+        {
+          ref: `refs/heads/${newBranch}`,
+          sha: branchData.object.sha,
+        }
       );
 
-      // Fetch all file paths from the new branch
       const files = await this.fetchAllFilePathsFromBranch(
         repoFullName,
         newBranch
       );
-      const parsedFilePaths = files.map((file: any) => file.filePath);
+      const fileContent = await this.fetchAndDecodeFiles(files);
+
+      const shouldExcludeFile = (filePath: string): boolean => {
+        const lowerPath = filePath.toLowerCase();
+
+        const exclusionPatterns = [
+          /(^|\/)(package|requirements|pyproject|pom|build|makefile)[^/]*$/,
+          /(^|\/)(jest|babel|tsconfig|eslint|vite|webpack|tailwind|prettier)\.config.*$/,
+          /\.(lock|md|txt|json|yml|yaml|ini|toml|cfg)$/i,
+          /\.(gitignore|dockerignore|gitattributes)$/i,
+          /(^|\/)\.github(\/|$)/,
+          /(^|\/)(readme|license)(\.|$)/,
+        ];
+
+        return exclusionPatterns.some((pattern) => pattern.test(lowerPath));
+      };
+
+      const supportedExtensions = [
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".py",
+        ".java",
+        ".go",
+        ".rb",
+        ".php",
+        ".cs",
+      ];
+
+      const sourceFiles = fileContent.filter((item) => {
+        const ext = item.filePath.toLowerCase();
+        return (
+          supportedExtensions.some((e) => ext.endsWith(e)) &&
+          !shouldExcludeFile(ext)
+        );
+      });
 
       const model = new AzureChatOpenAI({
-        azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY!,
+        azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
         azureOpenAIApiInstanceName: "azureopenai-BELSTERNS-southindia-dev-01",
         azureOpenAIApiVersion: "2024-10-01-preview",
         azureOpenAIApiDeploymentName: "gpt-4o-mini",
-        temperature: 0.8,
+        temperature: 0.3,
       });
 
-      try {
-        const prompt = ChatPromptTemplate.fromTemplate(
-          "You are an Express.js programmer. Your task is to analyze the provided file paths from the given branch, which are {filePaths}, to determine whether Jest configuration files exist for running unit tests. If Jest configuration files are found, return an empty array. If Jest configuration files are missing, generate and return the required Jest configuration files as an array of objects. Each object must contain a testPath, representing the expected file path for the Jest configuration, and a testContent, containing the required Jest configuration file content, ensuring compatibility with the project's structure. The Jest configuration file content should be well-formatted, with each statement on a new line and proper indentation. Do not write the entire configuration in a single line. The response must be a strictly valid JSON array without any formatting such as markdown, backticks, or language annotations, and should not contain any extra characters."
-        );
+      const createdConfigs = new Set<string>();
 
-        const chain = prompt.pipe(model);
+      for (const file of sourceFiles) {
+        if (!file.content) {
+          console.warn(
+            `Skipping file ${file.filePath} due to missing content.`
+          );
+          continue;
+        }
 
-        const response: any = await chain.invoke({
-          filePaths: parsedFilePaths,
-        });
+        try {
+          const prompt = ChatPromptTemplate.fromTemplate(`
+          You are a developer specialized in multi-language applications (JavaScript, Python, Java, Go, PHP, Ruby, etc.).
+          Analyze the code file at {file.filePath} and its content.
+          Return an array of objects. Each object MUST have:
+          - testPath: the path to the test file to be created
+          - testContent: the content of the test
+          If the code requires a test config (e.g., Jest, Pytest, Mocha), include an object with testPath as the config file and its testContent.
+          Do NOT include markdown formatting, backticks, or explanations.
+        `);
 
-        const parsedContent =
-          typeof response.content === "string"
-            ? JSON.parse(response.content)
-            : response.content;
-   
-        if (parsedContent.length) {
-          for (const file of parsedContent) {
+          const chain = prompt.pipe(model);
+          const response: any = await chain.invoke({
+            "file.filePath": file.filePath,
+            "file.content": file.content,
+          });
+
+          const content =
+            typeof response.content === "string"
+              ? response.content
+              : response.content?.toString() || "";
+
+          let parsedvalue;
+          try {
+            parsedvalue = JSON.parse(content);
+          } catch (parseError) {
+            console.error(
+              `Failed to parse test content for ${file.filePath}`,
+              parseError
+            );
+            continue;
+          }
+
+          for (const testFile of parsedvalue) {
+            const { testPath, testContent } = testFile;
+
+            if (createdConfigs.has(testPath)) continue;
+
+            const base64Content = Buffer.from(testContent).toString("base64");
+
             await this.createNewFileForInitializeRepo(
               repoFullName,
               newBranch,
-              file.testPath,
-              `Added unit test file ${file.testPath}`,
+              testPath,
+              `Added test/config file: ${testPath}`,
               {
                 name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
                 email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
               },
-              Buffer.from(file.testContent).toString("base64")
+              base64Content
             );
+
+            if (
+              testPath.includes("config") ||
+              testPath.includes("jest") ||
+              testPath.includes("pytest") ||
+              testPath.includes(".config")
+            ) {
+              createdConfigs.add(testPath);
+            }
           }
-
-          await this.createPullRequest(
-            repoFullName,
-            newBranch,
-            baseBranch,
-            `Initialize Repository with Test Configuration`,
-            `This pull request initializes the repository by creating a new branch and adding test configuration. It includes auto-generated test config files.`
-          );
+        } catch (err) {
+          console.error(`Error generating test for ${file.filePath}:`, err);
+          continue;
         }
-
-      } catch (error: any) {
-        console.error("Error extracting test files:", error?.data.errors);
       }
+
+      await this.createPullRequest(
+        repoFullName,
+        newBranch,
+        baseBranch,
+        `Initialize Repository with Tests`,
+        `Auto-generated test files and configuration for source code.`
+      );
 
       await prisma.repositories.update({
         where: { uuid: repoUuid, user_uuid: userUuid },
@@ -252,10 +331,13 @@ export class GitHubProvider implements GitProvider {
       });
 
       return {
-        message: `Repository initialized successfully, and '${newBranch}' was created for full test generation.`,
+        message: `Repository initialized successfully. Branch '${newBranch}' created with test cases.`,
       };
     } catch (error) {
-      throw error;
+      console.error("Error in processFullRepo:", error);
+      throw new Error(
+        "Failed to fully initialize the repository. See logs for details."
+      );
     }
   }
 
