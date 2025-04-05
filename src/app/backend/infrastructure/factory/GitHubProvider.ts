@@ -295,7 +295,7 @@ export class GitHubProvider implements GitProvider {
               repoFullName,
               newBranch,
               testPath,
-              `Added test/config file: ${testPath}`,
+              `Added ${testPath} file`,
               {
                 name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
                 email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
