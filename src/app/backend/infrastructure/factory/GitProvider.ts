@@ -69,8 +69,4 @@ export interface GitProvider {
     baseBranch: string,
     newBranch: string
   ): Promise<any>;
-  pushBranch(
-    repoFullName: string, 
-    branchName: string
-  ): Promise<any>
 }

@@ -58,22 +58,21 @@ export class WebhookService {
     console.log("branchResponse ===> ", branchResponse);
 
     await provider.fetchAndPull(repoFullName, baseBranch, newBranch);
+
     const updatedBranchResponse = await provider.branchExists(repoFullName, newBranch);
     console.log("updatedBranchResponse ===> ", updatedBranchResponse);
 
     await provider.processBranchAndFiles(
       updatedBranchResponse,
       repoFullName,
-      newBranch
+      newBranch 
     );
-
-    // await provider.pushBranch(repoFullName, newBranch);
 
     // Create the Pull Request
     await provider.createOrUpdatePullRequest(
       repoFullName,
-      newBranch,
-      baseBranch
+      baseBranch,
+      newBranch
     );
 
     return { message: `Branch '${newBranch}' created successfully.` };

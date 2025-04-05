@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 import fetch from "node-fetch";
+import { AzureChatOpenAI } from "@langchain/openai";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -45,10 +47,15 @@ export class GitHubProvider implements GitProvider {
     repoFullName: string,
     branchName: string,
     filePath: string
-  ): Promise<string | null> {
-    return this.fetchAPI(
-      `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`
-    );
+  ): Promise<any> {
+    try {
+      const data = this.fetchAPI(
+        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`
+      );
+      return data;
+    } catch (error: any) {
+      console.log("error in fetchFileContent ---------> ", error);
+    }
   }
 
   async fetchModifiedFiles(
@@ -80,7 +87,7 @@ export class GitHubProvider implements GitProvider {
     baseBranch: string,
     newBranch: string
   ): Promise<any> {
-    console.log("~~~Create Branch Begins~~~")
+    console.log("~~~Create Branch Begins~~~");
     const branchData = await this.fetchAPI(
       `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
     );
@@ -100,13 +107,22 @@ export class GitHubProvider implements GitProvider {
     body: string
   ): Promise<void> {
     console.log("~~~createPullRequest~~~");
-    console.log("repoFullName:", repoFullName, "headBranch:", headBranch, "baseBranch:", baseBranch);
+    console.log(
+      "repoFullName:",
+      repoFullName,
+      "headBranch:",
+      headBranch,
+      "baseBranch:",
+      baseBranch
+    );
     console.log("title:", title, "body:", body);
-  
+
     try {
       //Check if the headBranch exists
-      await this.fetchAPI(`${this.apiBaseUrl}/repos/${repoFullName}/branches/${headBranch}`);
-      
+      await this.fetchAPI(
+        `${this.apiBaseUrl}/repos/${repoFullName}/branches/${headBranch}`
+      );
+
       console.log("VERIFIED: Head Branch Exists");
       //Create the Pull Request
       const response = await this.fetchAPI(
@@ -119,12 +135,14 @@ export class GitHubProvider implements GitProvider {
           body,
         }
       );
-  
-      console.log(`✅ Pull Request created successfully: ${response.html_url}`);
+
+      console.log(`Pull Request created successfully: ${response.html_url}`);
       return response;
-  
     } catch (error: any) {
-      console.error(`❌ Error in createPullRequest:`, JSON.stringify(error.data.errors));
+      console.error(
+        `❌ Error in createPullRequest:`,
+        JSON.stringify(error.data.errors)
+      );
       throw error;
     }
   }
@@ -209,10 +227,14 @@ export class GitHubProvider implements GitProvider {
       // Run Langflow API for initialization
       const extractedFiles =
         await this.runLangflowRepoInitialization(filePaths);
-      
-      if(extractedFiles.length) {
-          // Create new files in the repository
-        await this.createExtractedFiles(repoFullName, newBranch, extractedFiles);
+
+      if (extractedFiles.length) {
+        // Create new files in the repository
+        await this.createExtractedFiles(
+          repoFullName,
+          newBranch,
+          extractedFiles
+        );
 
         // Create a pull request
         await this.createPullRequest(
@@ -351,38 +373,68 @@ export class GitHubProvider implements GitProvider {
     content: string,
     sha: string
   ): Promise<any> {
-    return this.fetchAPI(
-      `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
-      "PUT",
-      {
-        message,
-        branch: branchName,
-        committer: {
-          name: committer.name,
-          email: committer.email,
-        },
-        content: Buffer.from(content).toString("base64"),
-        sha: sha
-          ? sha
-          : await this.getFileSha(repoFullName, filePath, branchName),
-      }
-    );
-  }
+    console.log("repoFullName in updateExistingFile ---------> " , repoFullName);
+    console.log("branchName in updateExistingFile ---------> " , branchName);
+    console.log("filePath in updateExistingFile ---------> " , filePath);
+    console.log("message in updateExistingFile ---------> " , message);
+    console.log("content in updateExistingFile ---------> " , content);
+    console.log("sha in updateExistingFile ---------> " , sha);
 
-  async getFileSha(repoFullName: string, filePath: string, branchName: string): Promise<string | null> {
     try {
-      const response = await this.fetchAPI(
-        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`
+      const file = this.fetchAPI(
+        `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
+        "PUT",
+        {
+          message,
+          branch: branchName,
+          committer: {
+            name: committer.name,
+            email: committer.email,
+          },
+          content: Buffer.from(content).toString("base64"),
+          sha: sha
+            ? sha
+            : await this.getFileSha(repoFullName, filePath, branchName),
+        }
       );
-      return response.sha; 
-    } catch (error: any) {
-      if (error.statusCode === 404) {
-        return null;
-      }
-      throw error; 
+  
+      console.log("updated file res ------->" , file);
+    } catch (error) {
+      console.log("error in updateExistingFile ------------> ", error);
+      
     }
   }
+
+  async getFileSha(
+    repoFullName: string,
+    filePath: string,
+    branchName: string
+  ): Promise<string | null> {
+    try {
+      console.log("getFilesha ==> filePath : ", filePath, "brachName :", branchName);
+      const url = `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`;
+      console.log("url ----> ", url);
   
+      const response = await fetch(url);
+  
+      if (response.status === 404) {
+        console.warn("File not found, returning null.");
+        return null;
+      }
+  
+      if (!response.ok) {
+        const errorData: any = await response.json();
+        console.error("GitHub API error:", errorData);
+        throw new Error(`Failed to fetch file SHA: ${errorData.message}`);
+      }
+  
+      const data: any = await response.json();
+      return data.sha;
+    } catch (error: any) {
+      console.log("error in getting file sha ===> ", error);
+      throw error;
+    }
+  }
 
   async createNewFile(
     repoFullName: string,
@@ -405,7 +457,6 @@ export class GitHubProvider implements GitProvider {
       if (fileSha) {
         requestBody.sha = fileSha;
       }
-  
 
       const response = await fetch(
         `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
@@ -431,8 +482,6 @@ export class GitHubProvider implements GitProvider {
         };
       }
 
-      await this.pushBranch(repoFullName, branchName);
-      
       return responseData;
     } catch (error: any) {
       throw error;
@@ -498,6 +547,7 @@ export class GitHubProvider implements GitProvider {
           branchName,
           file.filename
         );
+        console.log(`Content of ${file.filename} is -------------> ${content}`);
         files.push({
           name: file.filename,
           path: file.filename,
@@ -518,7 +568,7 @@ export class GitHubProvider implements GitProvider {
       console.log("~~~Process Brach and Files Begin~~~");
       const latestCommitSHA = branchResponse.object.sha;
 
-      console.log("latestCommitSHA :",latestCommitSHA)
+      console.log("latestCommitSHA :", latestCommitSHA);
       // Fetch the commit details
       const commitResponse = await fetch(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/commits/${latestCommitSHA}`,
@@ -530,7 +580,7 @@ export class GitHubProvider implements GitProvider {
           },
         }
       );
-      console.log("commitResponse :",commitResponse)
+      console.log("commitResponse :", commitResponse);
 
       if (!commitResponse.ok) {
         throw new Error(
@@ -539,9 +589,9 @@ export class GitHubProvider implements GitProvider {
       }
 
       const commitData: any = await commitResponse.json();
-      console.log("commitData :",commitData)
+      console.log("commitData :", commitData);
       const parentCommitSHA = commitData.parents?.[0]?.sha;
-      console.log("parentCommitSHA  :",parentCommitSHA)
+      console.log("parentCommitSHA  :", parentCommitSHA);
 
       if (!parentCommitSHA) {
         console.error("No parent commit found for the latest commit.");
@@ -571,14 +621,14 @@ export class GitHubProvider implements GitProvider {
       }
 
       const compareData: any = await compareResponse.json();
-      console.log("compareData :",compareData);
+      console.log("compareData :", compareData);
 
       const changedFiles = compareData.files.map((file: any) => ({
         filename: file.filename,
         status: file.status,
         changes: file.changes,
       }));
-      console.log("changedFiles :",changedFiles);
+      console.log("changedFiles :", changedFiles);
 
       // Fetch modified file contents
       const repoFiles = await this.fetchModifiedFileContents(
@@ -587,71 +637,89 @@ export class GitHubProvider implements GitProvider {
         changedFiles
       );
 
-      const formattedRepoFiles = repoFiles.map((file: any) => ({
-        name: file.name,
-        path: file.path,
-        type: file.type,
-        content: file.content.content, // Extracting only the `content` field from `content`
-      }));
-      console.log("formattedRepoFiles :",formattedRepoFiles);
-
-      console.log("~~~COMMIT: Langflow api begins~~~");
-      // Process Langflow response
-      const langflowResponse = await fetch(
-        `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_COMMIT_WORKFLOW_ID}?stream=false`,
-        {
-          method: "POST",
-          headers: {
-            "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            output_type: "text",
-            input_type: "text",
-            tweaks: {
-              [`${process.env.LANGFLOW_REPO_COMMIT_CUSTOM_COMPONENT_ID}`]: {
-                json_str: {
-                  message: `Branch '${newBranch}' created successfully.`,
-                  changedFiles,
-                  formattedRepoFiles,
-                },
-                normalize_unicode: true,
-                remove_control_chars: true,
-                validate_json: true,
-              },
-            },
-          }),
-        }
-      );
-
-      const langflowData: any = await langflowResponse.json();
-      console.log("langflowData :", langflowData);
-
-      if (!langflowResponse.ok) {
-        throw {
-          message: `Failed to process Langflow response: ${langflowResponse.statusText}`,
-          data: langflowData,
-          statusCode: langflowData?.status,
+      const formattedRepoFiles = repoFiles.map((file: any) => {
+        return {
+          name: file.name,
+          path: file.path,
+          type: file.type,
+          content: file.content?.content, // Handles both nested and direct content
         };
-      }
+      });
+      
+      console.log("formattedRepoFiles :", formattedRepoFiles);
 
-      const parsedData = JSON.parse(
-        langflowData.outputs[0].outputs[0].results.text.data.text
+      const model = new AzureChatOpenAI({
+        azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY!,
+        azureOpenAIApiInstanceName: "azureopenai-BELSTERNS-southindia-dev-01",
+        azureOpenAIApiVersion: "2024-10-01-preview",
+        azureOpenAIApiDeploymentName: "gpt-4o-mini",
+        temperature: 0.8,
+      });
+
+      const prompt = ChatPromptTemplate.fromTemplate(
+        "You are an Express.js programmer. Your task is to analyze the provided file, whose file path is {filePath} and file content is {fileContent}, and to generate a Jest test case for the given code. Return the test file as an array of objects. Each object must contain a testPath, representing the expected file path for the Jest configuration, and a testContent, containing the required test file content, The response must be a strictly without any formatting such as markdown, backticks, or language annotations, and should not contain any extra characters."
       );
-      console.log("parsedData :", parsedData);
 
-      // Create or update files in the new branch
-      for (const file of parsedData.value) {
+      const chain = prompt.pipe(model);
+
+      for (const file of formattedRepoFiles) {
+        const decodedFileContent = Buffer.from(file.content, "base64").toString(
+          "utf8"
+        );
+        console.log("decodedFileContent ----------->", decodedFileContent);
+
+        const response: any = await chain.invoke({
+          filePath: file.path,
+          fileContent: decodedFileContent,
+        });
+
+        const parsedContent =
+          typeof response.content === "string"
+            ? JSON.parse(response.content)
+            : response.content;
+        console.log("parsedContent ------> ", parsedContent);    
+        console.log("parsedContent[0].testPath ------> ", parsedContent[0].testPath);
+        //Check if the file parsedContent[0].testPath exists
+        // const testFileSha = await this.getFileSha(
+        //   repoFullName,
+        //   parsedContent[0].testPath,
+        //   newBranch
+        // );
+
+        const fileContent: any = await this.getFileContent(
+          repoFullName, parsedContent[0].testPath, newBranch
+        );
+
+        console.log("fileContent ----->", fileContent)
+
+        //If exists update the file
+        if (fileContent) {
+          console.log("~~~~~updateExistingFile~~~~~")
+          await this.updateExistingFile(
+            repoFullName,
+            newBranch,
+            parsedContent[0].filePath,
+            `Updated unit test file ${parsedContent[0].testPath}`,
+            {
+              name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+              email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+            },
+            parsedContent[0].fileContent,
+            fileContent.sha
+          );
+          continue;
+        }
+        console.log("~~~~~createNewFile~~~~~")
         await this.createNewFile(
           repoFullName,
           newBranch,
-          file.name,
-          `Adding test file: ${file.name}`,
+          parsedContent[0].testPath,
+          `Added unit test file ${parsedContent[0].testPath}`,
           {
             name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
             email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
           },
-          file.content
+          Buffer.from(parsedContent[0].testContent).toString("base64")
         );
       }
     } catch (error: any) {
@@ -684,13 +752,12 @@ export class GitHubProvider implements GitProvider {
         object: {
           sha: branchData.commit.sha,
           type: "commit",
-          url: branchData.commit.url
-        }
+          url: branchData.commit.url,
+        },
       };
-
     } catch (error: any) {
-      console.log("error : branch Exists ==> " , error)
-      if (error.data?.status === '404') {
+      console.log("error : branch Exists ==> ", error);
+      if (error.data?.status === "404") {
         console.log("Branch not found!");
         return false;
       }
@@ -698,32 +765,43 @@ export class GitHubProvider implements GitProvider {
     }
   }
 
-  async fetchAndPull(repoFullName: string, baseBranch: string, newBranch: string): Promise<any> {
-    console.log(`Pulling latest changes from '${baseBranch}' into '${newBranch}'...`);
-  
+  async fetchAndPull(
+    repoFullName: string,
+    baseBranch: string,
+    newBranch: string
+  ): Promise<any> {
+    console.log(
+      `Pulling latest changes from '${baseBranch}' into '${newBranch}'...`
+    );
+
     try {
+      console.log('baseBranch --------------> ', baseBranch);
+      console.log('newBranch --------------> ', newBranch);
+      const data = await this.fetchFileContent(repoFullName, newBranch, 'src/app.test.js');
+      console.log('data --------------> ', data);
       // Get latest commit SHA of baseBranch
       const baseBranchData = await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/branches/${baseBranch}`,
         "GET"
       );
-  
+
       const baseSha = baseBranchData.commit.sha;
       console.log(`baseSha': ${baseSha}`);
-  
+
       //Update newBranch to match baseBranch (like a force pull)
       console.log("Taking a Pull");
-  
+
       const resetResponse = await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/refs/heads/${newBranch}`,
         "PATCH",
         {
           sha: baseSha,
-          force: true
+          force: true,
         }
       );
-  
-      console.log(`✅ '${newBranch}' is now up to date with '${baseBranch}'.`);
+      console.log("resetResponse ===> ", resetResponse)
+
+      console.log(`'${newBranch}' is now up to date with '${baseBranch}'.`);
 
       console.log(`🚀 Pushing '${newBranch}' to remote...`);
 
@@ -732,15 +810,52 @@ export class GitHubProvider implements GitProvider {
         "PATCH",
         {
           sha: baseSha,
-          force: true
+          force: true,
         }
       );
 
-      console.log(`✅ '${newBranch}' has been successfully pushed to remote.`);
-  
+      console.log(`'${newBranch}' has been successfully pushed to remote.`);
+
       return resetResponse;
     } catch (error) {
       console.error(`Error in fetchAndPull:`, error);
+      throw error;
+    }
+  }
+
+  async getFileContent(
+    repoFullName: string,
+    filePath: string,
+    branchName: string
+  ): Promise<string | null> {
+    try {
+      const url = `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}?ref=${branchName}`;
+      console.log("Fetching file content from:", url);
+  
+      const response = await fetch(url);
+  
+      if (response.status === 404) {
+        console.warn("File not found on branch:", branchName);
+        return null;
+      }
+  
+      if (!response.ok) {
+        const errorData: any = await response.json();
+        console.error("GitHub API error:", errorData);
+        throw new Error(`Failed to fetch file content: ${errorData.message}`);
+      }
+  
+      const data: any = await response.json();
+  
+      // Check if it's a file and decode Base64
+      if (data && data.type === "file" && data.content) {
+        const buffer = Buffer.from(data.content, data.encoding || 'base64');
+        return buffer.toString('utf-8');
+      }
+  
+      return null;
+    } catch (error: any) {
+      console.error("Error fetching file content:", error);
       throw error;
     }
   }
@@ -750,23 +865,29 @@ export class GitHubProvider implements GitProvider {
     baseBranch: string,
     newBranch: string
   ): Promise<any> {
-    console.log(`🔎 Checking if a Pull Request exists from '${newBranch}' to '${baseBranch}'...`);
-  
+    console.log(
+      `Checking if a Pull Request exists from '${newBranch}' to '${baseBranch}'...`
+    );
+
     try {
       // Check if PR already exists
       const existingPRs = await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/pulls?head=${newBranch}&base=${baseBranch}&state=open`,
         "GET"
       );
-  
+      console.log("existingPRs --------->", existingPRs);
+
       if (existingPRs.length > 0) {
         console.log(`PR already exists: ${existingPRs[0].html_url}`);
-        return { message: "Pull request already exists", pr_url: existingPRs[0].html_url };
+        return {
+          message: "Pull request already exists",
+          pr_url: existingPRs[0].html_url,
+        };
       }
-  
+
       // Create a new PR if not found
-      console.log(`📌 No existing PR found. Creating a new PR...`);
-  
+      console.log(`No existing PR found. Creating a new PR...`);
+
       const title = `Add unit tests for branch ${baseBranch}`;
       const body = `This PR introduces unit tests for the changes made in the branch '${baseBranch}'.`;
 
@@ -777,42 +898,10 @@ export class GitHubProvider implements GitProvider {
         title,
         body
       );
-  
+
       console.log(`PR created: ${newPR}`);
       return { message: "Pull request created successfully" };
-  
     } catch (error) {
-      throw error;
-    }
-  }
-  
-  async pushBranch(repoFullName: string, branchName: string): Promise<any> {
-    console.log(`🚀 Pushing branch '${branchName}' to remote...`);
-  
-    try {
-      // 1️⃣ Get latest commit SHA of the branch
-      const branchData = await this.fetchAPI(
-        `${this.apiBaseUrl}/repos/${repoFullName}/git/refs/heads/${branchName}`,
-        "GET"
-      );
-  
-      const branchSha = branchData.object.sha;
-      console.log(`✅ Latest SHA of '${branchName}': ${branchSha}`);
-  
-      // 2️⃣ Update the reference of the branch to point to the latest commit
-      const pushResponse = await this.fetchAPI(
-        `${this.apiBaseUrl}/repos/${repoFullName}/git/refs/heads/${branchName}`,
-        "PATCH",
-        {
-          sha: branchSha,
-          force: true, // Use 'true' if you need to force push (be cautious)
-        }
-      );
-  
-      console.log(`✅ Branch '${branchName}' successfully pushed.`);
-      return pushResponse;
-    } catch (error) {
-      console.error(`❌ Error pushing branch '${branchName}':`, error);
       throw error;
     }
   }
