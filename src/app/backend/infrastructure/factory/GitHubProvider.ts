@@ -11,38 +11,42 @@ export class GitHubProvider implements GitProvider {
     private repoToken: string
   ) {}
 
-  private async fetchAPI(
+  async fetchAPI(
     url: string,
     method: string = "GET",
     body?: any
   ): Promise<any> {
+    const headers: any = {
+      Authorization: `token ${this.repoToken}`,
+      Accept: "application/vnd.github.v3+json",
+      "Content-Type": "application/json",
+    };
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const responseText = await response.text();
+    let responseData = {};
+
     try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          Authorization: `token ${this.repoToken}`,
-          Accept: "application/vnd.github.v3+json",
-          "Content-Type": "application/json",
-        },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-
-      const responseData: any = await response.json();
-
-      if (!response.ok) {
-        throw {
-          message: `Request failed: ${response.statusText} - ${responseData.message || ""}`,
-          data: responseData,
-          statusCode: response.status,
-        };
-      }
-
-      return responseData;
-    } catch (error: any) {
-      console.error(`Error in fetchAPI:`, error);
-
-      throw error;
+      responseData = responseText ? JSON.parse(responseText) : {};
+    } catch (err) {
+      console.error("Failed to parse JSON from response:", responseText);
+      throw err;
     }
+
+    if (!response.ok) {
+      throw {
+        message: `Request failed: ${response.statusText}`,
+        data: responseData,
+        statusCode: response.status,
+      };
+    }
+
+    return responseData;
   }
 
   async fetchFileContent(
@@ -570,9 +574,6 @@ export class GitHubProvider implements GitProvider {
         return { message: "No parent commit found for the latest commit" };
       }
 
-      // Step 1: Pull latest changes into test branch
-      await this.fetchAndPull(repoFullName, baseBranch, newBranch);
-
       // Step 2: Compare commits to get changed files
       const compareResponse = await fetch(
         `${this.apiBaseUrl}/repos/${repoFullName}/compare/${parentCommitSHA}...${latestCommitSHA}`,
@@ -592,11 +593,21 @@ export class GitHubProvider implements GitProvider {
       }
 
       const compareData: any = await compareResponse.json();
+
       const changedFiles = compareData.files.map((file: any) => ({
         filename: file.filename,
         status: file.status,
         changes: file.changes,
       }));
+
+      const changedFilePaths = changedFiles.map((f: any) => f.filename);
+
+      await this.fetchAndPull(
+        repoFullName,
+        baseBranch,
+        newBranch,
+        changedFilePaths
+      );
 
       const model = new AzureChatOpenAI({
         azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY!,
@@ -760,46 +771,44 @@ export class GitHubProvider implements GitProvider {
   async fetchAndPull(
     repoFullName: string,
     baseBranch: string,
-    newBranch: string
+    newBranch: string,
+    changedFilePaths: string[]
   ): Promise<any> {
     try {
-      await this.fetchFileContent(
-        repoFullName,
-        newBranch,
-        "user/UserController.js"
-      );
-
-      // Get latest commit SHA of baseBranch
-      const baseBranchData = await this.fetchAPI(
+      // Confirm both branches exist
+      await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/branches/${baseBranch}`,
         "GET"
       );
-
-      const baseSha = baseBranchData.commit.sha;
-
-      //Update newBranch to match baseBranch (like a force pull)
-
-      const resetResponse = await this.fetchAPI(
-        `${this.apiBaseUrl}/repos/${repoFullName}/git/refs/heads/${newBranch}`,
-        "PATCH",
-        {
-          sha: baseSha,
-          force: true,
-        }
-      );
-
       await this.fetchAPI(
-        `${this.apiBaseUrl}/repos/${repoFullName}/git/refs/heads/${newBranch}`,
-        "PATCH",
+        `${this.apiBaseUrl}/repos/${repoFullName}/branches/${newBranch}`,
+        "GET"
+      );
+
+      // Pre-fetch changed files (optional but helpful)
+      for (const path of changedFilePaths) {
+        await this.fetchFileContent(repoFullName, newBranch, path);
+      }
+
+      // Merge baseBranch into newBranch
+      const mergeResponse = await this.fetchAPI(
+        `${this.apiBaseUrl}/repos/${repoFullName}/merges`,
+        "POST",
         {
-          sha: baseSha,
-          force: true,
+          base: newBranch,
+          head: baseBranch,
+          commit_message: `Merging ${baseBranch} into ${newBranch} before test generation`,
         }
       );
 
-      return resetResponse;
-    } catch (error) {
-      console.error(`Error in fetchAndPull:`, error);
+      return mergeResponse;
+    } catch (error: any) {
+      if (error.message?.includes("Merge conflict")) {
+        console.error("Merge conflict occurred");
+        // Handle conflict logic here if needed
+      } else {
+        console.error("Error in fetchAndPull:", error);
+      }
       throw error;
     }
   }
