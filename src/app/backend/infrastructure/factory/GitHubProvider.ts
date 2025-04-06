@@ -362,7 +362,7 @@ export class GitHubProvider implements GitProvider {
     sha: string
   ): Promise<any> {
     try {
-      const file = this.fetchAPI(
+      await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
         "PUT",
         {
@@ -751,7 +751,7 @@ export class GitHubProvider implements GitProvider {
       };
     } catch (error: any) {
       console.warn(
-        `Warning: Could not fetch branch "${branchName}" in "${repoFullName}"`
+        `Warning: Could not fetch branch "${branchName}" in "${repoFullName}, ${error} -------->> "`
       );
       return false;
     }
