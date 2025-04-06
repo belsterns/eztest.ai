@@ -448,7 +448,13 @@ export class GitHubProvider implements GitProvider {
             Accept: "application/vnd.github.v3+json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify({
+            message,
+            committer,
+            content: content,
+            branch: branchName,
+            // sha: await this.getFileSha(repoFullName, filePath, branchName),
+          }),
         }
       );
 
