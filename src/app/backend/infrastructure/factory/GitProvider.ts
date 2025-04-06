@@ -53,6 +53,7 @@ export interface GitProvider {
   processBranchAndFiles(
     branchResponse: any,
     repoFullName: string,
+    baseBranch: string,
     newBranch: string
   ): Promise<any>;
   branchExists(

@@ -26,8 +26,6 @@ export class WebhookService {
     baseBranch: string,
     webhookUuid: string
   ) {
-    console.log("repoFullName : ", repoFullName, "baseBranch : ", baseBranch);
-
     const repository = await this.findRepositoryByWebhookUuid(webhookUuid);
     const repoToken = decryptToken(repository.token);
 
@@ -44,28 +42,24 @@ export class WebhookService {
     const suffix = "_unitTest";
     const newBranch = `${baseBranch}${suffix}`;
 
-    console.log("newBranch : ", newBranch);
+    let branchResponse = await provider.branchExists(repoFullName, newBranch);
 
-    let branchResponse: any;
-
-    // Check if the branch already exists
-    branchResponse = await provider.branchExists(repoFullName, newBranch);
-    
     if (!branchResponse) {
-      branchResponse = await provider.createBranch(repoFullName, baseBranch, newBranch);
-      return;
+      console.log(`Branch "${newBranch}" does not exist. Creating...`);
+      branchResponse = await provider.createBranch(
+        repoFullName,
+        baseBranch,
+        newBranch
+      );
+    } else {
+      console.log(`Branch "${newBranch}" already exists.`);
     }
-    console.log("branchResponse ===> ", branchResponse);
-
-    await provider.fetchAndPull(repoFullName, baseBranch, newBranch);
-
-    const updatedBranchResponse = await provider.branchExists(repoFullName, newBranch);
-    console.log("updatedBranchResponse ===> ", updatedBranchResponse);
 
     await provider.processBranchAndFiles(
-      updatedBranchResponse,
+      branchResponse,
       repoFullName,
-      newBranch 
+      baseBranch,
+      newBranch
     );
 
     // Create the Pull Request
