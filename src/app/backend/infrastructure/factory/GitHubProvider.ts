@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 import fetch from "node-fetch";
