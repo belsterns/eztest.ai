@@ -559,28 +559,60 @@ export class GitLabProvider implements GitProvider {
     }
   }
 
-  
   async fetchModifiedFileContents(
     repoFullName: any,
     branchName: any,
     changedFiles: any
-  ): Promise<any>{
-     return {
+  ): Promise<any> {
+    return {
       repoFullName,
       branchName,
-      changedFiles
-     }
+      changedFiles,
+    };
   }
 
   async processBranchAndFiles(
-      branchResponse: any,
-      repoFullName: string,
-      newBranch: string
-    ): Promise<any> {
-      return {
-        branchResponse,
-        repoFullName,
-        newBranch
-      }
+    branchResponse: any,
+    repoFullName: string,
+    baseBranch: string,
+    newBranch: string
+  ): Promise<any> {
+    return {
+      baseBranch,
+      branchResponse,
+      repoFullName,
+      newBranch,
+    };
+  }
+
+  async branchExists(repoFullName: string, branchName: string): Promise<any> {
+    return {
+      branchName,
+      repoFullName,
+    };
+  }
+
+  async fetchAndPull(
+    repoFullName: string,
+    baseBranch: string,
+    newBranch: string
+  ): Promise<any> {
+    return {
+      baseBranch,
+      repoFullName,
+      newBranch,
+    };
+  }
+
+  async createOrUpdatePullRequest(
+    repoFullName: string,
+    baseBranch: string,
+    newBranch: string
+  ): Promise<any> {
+    return {
+      baseBranch,
+      repoFullName,
+      newBranch,
+    };
   }
 }

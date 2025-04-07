@@ -34,36 +34,39 @@ export class WebhookService {
       repoToken
     );
 
-    // Ensure we do not process if it's a full test branch
-    if (baseBranch.endsWith("_fullTest")) {
+    // Ensure we do not process if it's a full test or unit test branch
+    if (baseBranch.endsWith("_fullTest") || baseBranch.endsWith("_unitTest")) {
       return null;
     }
 
     const suffix = "_unitTest";
     const newBranch = `${baseBranch}${suffix}`;
 
-    const branchResponse = await provider.createBranch(
-      repoFullName,
-      baseBranch,
-      newBranch
-    );
+    let branchResponse = await provider.branchExists(repoFullName, newBranch);
+
+    if (!branchResponse) {
+      console.log(`Branch "${newBranch}" does not exist. Creating...`);
+      branchResponse = await provider.createBranch(
+        repoFullName,
+        baseBranch,
+        newBranch
+      );
+    } else {
+      console.log(`Branch "${newBranch}" already exists.`);
+    }
 
     await provider.processBranchAndFiles(
       branchResponse,
       repoFullName,
+      baseBranch,
       newBranch
     );
 
-    const title = `Add unit tests for branch ${baseBranch}`;
-    const body = `This PR introduces unit tests for the changes made in the branch '${baseBranch}'.`;
-
     // Create the Pull Request
-    await provider.createPullRequest(
+    await provider.createOrUpdatePullRequest(
       repoFullName,
-      newBranch,
       baseBranch,
-      title,
-      body
+      newBranch
     );
 
     return { message: `Branch '${newBranch}' created successfully.` };
