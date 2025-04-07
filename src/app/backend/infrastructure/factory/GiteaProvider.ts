@@ -505,13 +505,13 @@ export class GiteaProvider implements GitProvider {
   }
 
   async processBranchAndFiles(
-    branchResponse: any,
+    // branchResponse: any,
     repoFullName: string,
     _baseBranch: string,
     newBranch: string
   ): Promise<any> {
     return {
-      branchResponse,
+      // branchResponse,
       repoFullName,
       newBranch,
     };

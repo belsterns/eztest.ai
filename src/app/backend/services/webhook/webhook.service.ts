@@ -56,7 +56,7 @@ export class WebhookService {
     }
 
     await provider.processBranchAndFiles(
-      branchResponse,
+      // branchResponse,
       repoFullName,
       baseBranch,
       newBranch

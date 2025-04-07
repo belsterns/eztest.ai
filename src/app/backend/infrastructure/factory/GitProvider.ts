@@ -51,7 +51,7 @@ export interface GitProvider {
     content: string
   ): Promise<any>;
   processBranchAndFiles(
-    branchResponse: any,
+    // branchResponse: any,
     repoFullName: string,
     baseBranch: string,
     newBranch: string

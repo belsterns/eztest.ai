@@ -625,12 +625,13 @@ export class GitHubProvider implements GitProvider {
   }
 
   async processBranchAndFiles(
-    branchResponse: any,
+    // branchResponse: any,
     repoFullName: string,
     baseBranch: string,
     newBranch: string
   ): Promise<any> {
     try {
+      const branchResponse = await this.branchExists(repoFullName, baseBranch);
       const latestCommitSHA = branchResponse.object.sha;
 
       // Fetch the commit details
@@ -685,14 +686,14 @@ export class GitHubProvider implements GitProvider {
         changes: file.changes,
       }));
 
-      const changedFilePaths = changedFiles.map((f: any) => f.filename);
+      // const changedFilePaths = changedFiles.map((f: any) => f.filename);
 
-      await this.fetchAndPull(
-        repoFullName,
-        baseBranch,
-        newBranch,
-        changedFilePaths
-      );
+      // await this.fetchAndPull(
+      //   repoFullName,
+      //   baseBranch,
+      //   newBranch,
+      //   changedFilePaths
+      // );
 
       const model = new AzureChatOpenAI({
         azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,

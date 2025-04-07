@@ -572,14 +572,14 @@ export class GitLabProvider implements GitProvider {
   }
 
   async processBranchAndFiles(
-    branchResponse: any,
+    // branchResponse: any,
     repoFullName: string,
     baseBranch: string,
     newBranch: string
   ): Promise<any> {
     return {
       baseBranch,
-      branchResponse,
+      // branchResponse,
       repoFullName,
       newBranch,
     };
