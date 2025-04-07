@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 import fetch from "node-fetch";
+import { AzureChatOpenAI } from "@langchain/openai";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -173,7 +175,7 @@ export class GitHubProvider implements GitProvider {
         );
       }
 
-      const newBranch = `${baseBranch}_fullTest`;
+      const newBranch: string = `${baseBranch}_fullTest`;
 
       const branchData = await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
@@ -182,32 +184,147 @@ export class GitHubProvider implements GitProvider {
       await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/refs`,
         "POST",
-        { ref: `refs/heads/${newBranch}`, sha: branchData.object.sha }
+        {
+          ref: `refs/heads/${newBranch}`,
+          sha: branchData.object.sha,
+        }
       );
 
-      // Fetch all file paths from the new branch
-      const filePaths = await this.fetchAllFilePathsFromBranch(
+      const files = await this.fetchAllFilePathsFromBranch(
         repoFullName,
         newBranch
       );
+      const fileContent = await this.fetchAndDecodeFiles(files);
 
-      // Run Langflow API for initialization
-      const extractedFiles =
-        await this.runLangflowRepoInitialization(filePaths);
-      
-      if(extractedFiles.length) {
-          // Create new files in the repository
-        await this.createExtractedFiles(repoFullName, newBranch, extractedFiles);
+      const shouldExcludeFile = (filePath: string): boolean => {
+        const lowerPath = filePath.toLowerCase();
 
-        // Create a pull request
-        await this.createPullRequest(
-          repoFullName,
-          newBranch,
-          baseBranch,
-          "Initialize Repository with Test Cases",
-          "This pull request initializes the repository by creating a new branch and adding test cases for validation. It includes auto-generated test files to enhance code coverage and maintainability."
+        const exclusionPatterns = [
+          /(^|\/)(package|requirements|pyproject|pom|build|makefile)[^/]*$/,
+          /(^|\/)(jest|babel|tsconfig|eslint|vite|webpack|tailwind|prettier)\.config.*$/,
+          /\.(lock|md|txt|json|yml|yaml|ini|toml|cfg)$/i,
+          /\.(gitignore|dockerignore|gitattributes)$/i,
+          /(^|\/)\.github(\/|$)/,
+          /(^|\/)(readme|license)(\.|$)/,
+        ];
+
+        return exclusionPatterns.some((pattern) => pattern.test(lowerPath));
+      };
+
+      const supportedExtensions = [
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".py",
+        ".java",
+        ".go",
+        ".rb",
+        ".php",
+        ".cs",
+      ];
+
+      const sourceFiles = fileContent.filter((item) => {
+        const ext = item.filePath.toLowerCase();
+        return (
+          supportedExtensions.some((e) => ext.endsWith(e)) &&
+          !shouldExcludeFile(ext)
         );
+      });
+
+      const model = new AzureChatOpenAI({
+        azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
+        azureOpenAIApiInstanceName: process.env.AZURE_OPENAI_API_INSTANCE_NAME,
+        azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION,
+        azureOpenAIApiDeploymentName:
+          process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
+        temperature: Number(process.env.AZURE_OPENAI_API_TEMPERATURE),
+      });
+
+      const createdConfigs = new Set<string>();
+
+      for (const file of sourceFiles) {
+        if (!file.content) {
+          console.warn(
+            `Skipping file ${file.filePath} due to missing content.`
+          );
+          continue;
+        }
+
+        try {
+          const prompt = ChatPromptTemplate.fromTemplate(`
+          You are a developer specialized in multi-language applications (JavaScript, Python, Java, Go, PHP, Ruby, etc.).
+          Analyze the code file at {file.filePath} and its content.
+          Return an array of objects. Each object MUST have:
+          - testPath: the path to the test file to be created
+          - testContent: the content of the test
+          If the code requires a test config (e.g., Jest, Pytest, Mocha), include an object with testPath as the config file and its testContent.
+          Do NOT include markdown formatting, backticks, or explanations.
+        `);
+
+          const chain = prompt.pipe(model);
+          const response: any = await chain.invoke({
+            "file.filePath": file.filePath,
+            "file.content": file.content,
+          });
+
+          const content =
+            typeof response.content === "string"
+              ? response.content
+              : response.content?.toString() || "";
+
+          let parsedvalue;
+          try {
+            parsedvalue = JSON.parse(content);
+          } catch (parseError) {
+            console.error(
+              `Failed to parse test content for ${file.filePath}`,
+              parseError
+            );
+            continue;
+          }
+
+          for (const testFile of parsedvalue) {
+            const { testPath, testContent } = testFile;
+
+            if (createdConfigs.has(testPath)) continue;
+
+            const base64Content = Buffer.from(testContent).toString("base64");
+
+            await this.createNewFileForInitializeRepo(
+              repoFullName,
+              newBranch,
+              testPath,
+              `Added ${testPath} file`,
+              {
+                name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+                email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+              },
+              base64Content
+            );
+
+            if (
+              testPath.includes("config") ||
+              testPath.includes("jest") ||
+              testPath.includes("pytest") ||
+              testPath.includes(".config")
+            ) {
+              createdConfigs.add(testPath);
+            }
+          }
+        } catch (err) {
+          console.error(`Error generating test for ${file.filePath}:`, err);
+          continue;
+        }
       }
+
+      await this.createPullRequest(
+        repoFullName,
+        newBranch,
+        baseBranch,
+        `Initialize Repository with Tests`,
+        `Auto-generated test files and configuration for source code.`
+      );
 
       await prisma.repositories.update({
         where: { uuid: repoUuid, user_uuid: userUuid },
@@ -215,62 +332,31 @@ export class GitHubProvider implements GitProvider {
       });
 
       return {
-        message: `Repository initialized successfully, and '${newBranch}' was created for full test generation.`,
+        message: `Repository initialized successfully. Branch '${newBranch}' created with test cases.`,
       };
     } catch (error) {
-      throw error;
+      console.error("Error in processFullRepo:", error);
+      throw new Error(
+        "Failed to fully initialize the repository. See logs for details."
+      );
     }
   }
 
-  private async runLangflowRepoInitialization(
-    filePaths: string[]
-  ): Promise<{ fileName: string; content: string }[]> {
-    try {
-      const response = await fetch(
-        `https://${process.env.LANGFLOW_API_BASE_URL}/run/${process.env.LANGFLOW_REPO_INITIALIZE_WORKFLOW_ID}?stream=false`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": `${process.env.LANGFLOW_API_KEY}`,
-          },
-          body: JSON.stringify({
-            output_type: "text",
-            input_type: "text",
-            tweaks: {
-              [`${process.env.LANGFLOW_REPO_INITIALIZE_CUSTOM_COMPONENT_ID}`]: {
-                input_value: JSON.stringify(filePaths),
-              },
-            },
-          }),
+  private async fetchAndDecodeFiles(files: any) {
+    const fileContents = await Promise.all(
+      files.map(async (file: any) => {
+        try {
+          const response = await this.fetchAPI(file.url);
+
+          const decodedContent = atob(response.content);
+          return { filePath: file.filePath, content: decodedContent };
+        } catch (error) {
+          console.error(`Error fetching file ${file.filePath}:`, error);
+          return { filePath: file.filePath, content: null };
         }
-      );
-
-      const result: any = await response.json();
-
-      const apiTextData =
-        result?.outputs?.[0]?.outputs?.[0]?.results?.text?.data?.text;
-      if (!apiTextData) {
-        console.error("Unexpected API response format.");
-        throw {
-          message: `Unexpected API response format.`,
-          data: null,
-          statusCode: 400,
-        };
-      }
-
-      try {
-        const parsedData = JSON.parse(apiTextData);
-        return parsedData?.value?.map((file: any) => ({
-          fileName: file.name,
-          content: file.content,
-        }));
-      } catch (parseError) {
-        throw parseError;
-      }
-    } catch (error: any) {
-      throw error;
-    }
+      })
+    );
+    return fileContents;
   }
 
   private async createExtractedFiles(
@@ -625,6 +711,10 @@ export class GitHubProvider implements GitProvider {
 
     return response.tree
       .filter((item: any) => item.type === "blob")
-      .map((file: any) => file.path);
+      .map((file: any) => ({
+        filePath: file.path,
+        sha: file.sha,
+        url: file.url,
+      }));
   }
 }
