@@ -197,7 +197,7 @@ export class GitHubProvider implements GitProvider {
         );
       }
 
-      const newBranch: string = `${baseBranch}_fullTest`;
+      const newBranch = `${baseBranch}_fullTest`;
 
       const branchData = await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
@@ -220,16 +220,13 @@ export class GitHubProvider implements GitProvider {
 
       const shouldExcludeFile = (filePath: string): boolean => {
         const lowerPath = filePath.toLowerCase();
-
         const exclusionPatterns = [
           /(^|\/)(package|requirements|pyproject|pom|build|makefile)[^/]*$/,
           /(^|\/)(jest|babel|tsconfig|eslint|vite|webpack|tailwind|prettier)\.config.*$/,
           /\.(lock|md|txt|json|yml|yaml|ini|toml|cfg)$/i,
           /\.(gitignore|dockerignore|gitattributes)$/i,
-          /(^|\/)\.github(\/|$)/,
-          /(^|\/)(readme|license)(\.|$)/,
+          /(^|\/)(build|dist|node_modules|\.git|\.github|\.vscode)(\/|$)/,
         ];
-
         return exclusionPatterns.some((pattern) => pattern.test(lowerPath));
       };
 
@@ -237,13 +234,21 @@ export class GitHubProvider implements GitProvider {
         ".js",
         ".ts",
         ".jsx",
-        ".tsx",
-        ".py",
-        ".java",
-        ".go",
-        ".rb",
-        ".php",
-        ".cs",
+        ".tsx", // JavaScript/TypeScript
+        ".py", // Python
+        ".java", // Java
+        ".go", // Go
+        ".rb", // Ruby
+        ".php", // PHP
+        ".cs", // C#
+        ".swift", // Swift
+        ".kt",
+        ".kts", // Kotlin
+        ".dart", // Dart (Flutter)
+        ".html",
+        ".css",
+        ".scss",
+        ".vue", // Frontend
       ];
 
       const sourceFiles = fileContent.filter((item) => {
@@ -264,6 +269,9 @@ export class GitHubProvider implements GitProvider {
       });
 
       const createdConfigs = new Set<string>();
+      const fileMap = Object.fromEntries(
+        fileContent.map((f) => [f.filePath.toLowerCase(), f])
+      );
 
       for (const file of sourceFiles) {
         if (!file.content) {
@@ -275,14 +283,14 @@ export class GitHubProvider implements GitProvider {
 
         try {
           const prompt = ChatPromptTemplate.fromTemplate(`
-          You are a developer specialized in multi-language applications (JavaScript, Python, Java, Go, PHP, Ruby, etc.).
-          Analyze the code file at {file.filePath} and its content.
-          Return an array of objects. Each object MUST have:
-          - testPath: the path to the test file to be created
-          - testContent: the content of the test
-          If the code requires a test config (e.g., Jest, Pytest, Mocha), include an object with testPath as the config file and its testContent.
-          Do NOT include markdown formatting, backticks, or explanations.
-        `);
+        You are a developer specialized in multi-language applications (JavaScript, Python, Java, Go, PHP, Ruby, Swift, Kotlin, Dart, etc.).
+        Analyze the code file at {file.filePath} and its content.
+        Return an array of objects. Each object MUST have:
+        - testPath: the path to the test file to be created
+        - testContent: the content of the test
+        If the code requires a test config (e.g., Jest, Pytest, Mocha, Flutter test), include an object with testPath and testContent.
+        Do NOT include markdown, backticks, or explanations.
+      `);
 
           const chain = prompt.pipe(model);
           const response: any = await chain.invoke({
@@ -308,10 +316,7 @@ export class GitHubProvider implements GitProvider {
 
           for (const testFile of parsedvalue) {
             const { testPath, testContent } = testFile;
-
             if (createdConfigs.has(testPath)) continue;
-
-            const base64Content = Buffer.from(testContent).toString("base64");
 
             await this.createNewFileForInitializeRepo(
               repoFullName,
@@ -322,15 +327,10 @@ export class GitHubProvider implements GitProvider {
                 name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
                 email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
               },
-              base64Content
+              Buffer.from(testContent).toString("base64")
             );
 
-            if (
-              testPath.includes("config") ||
-              testPath.includes("jest") ||
-              testPath.includes("pytest") ||
-              testPath.includes(".config")
-            ) {
+            if (/config|jest|pytest|\.ini|\.json|\.yaml|\.yml/.test(testPath)) {
               createdConfigs.add(testPath);
             }
           }
@@ -340,12 +340,47 @@ export class GitHubProvider implements GitProvider {
         }
       }
 
+      const endsWith = (ext: string) =>
+        sourceFiles.some((f) => f.filePath.endsWith(ext));
+
+      if (fileMap["package.json"]) {
+        const pkg = JSON.parse(fileMap["package.json"].content);
+        pkg.scripts = pkg.scripts || {};
+
+        if ((endsWith(".js") || endsWith(".ts")) && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "jest";
+        }
+
+        if (endsWith(".vue") && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "vitest";
+        }
+
+        if (endsWith(".dart") && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "flutter test";
+        }
+
+        if (Object.keys(pkg.scripts).length) {
+          await this.createNewFileForInitializeRepo(
+            repoFullName,
+            newBranch,
+            "package.json",
+            "Update package.json with test scripts",
+            {
+              name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+              email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+            },
+            Buffer.from(JSON.stringify(pkg, null, 2)).toString("base64")
+          );
+          createdConfigs.add("package.json");
+        }
+      }
+
       await this.createPullRequest(
         repoFullName,
         newBranch,
         baseBranch,
         `Initialize Repository with Tests`,
-        `Auto-generated test files and configuration for source code.`
+        `Auto-generated test files and configuration for detected source code.`
       );
 
       await prisma.repositories.update({
