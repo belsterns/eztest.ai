@@ -53,6 +53,19 @@ export interface GitProvider {
   processBranchAndFiles(
     branchResponse: any,
     repoFullName: string,
+    baseBranch: string,
+    newBranch: string
+  ): Promise<any>;
+  branchExists(repoFullName: string, branchName: string): Promise<any>;
+  fetchAndPull(
+    repoFullName: string,
+    baseBranch: string,
+    newBranch: string,
+    changedFilePaths: string[]
+  ): Promise<any>;
+  createOrUpdatePullRequest(
+    repoFullName: string,
+    baseBranch: string,
     newBranch: string
   ): Promise<any>;
 }
