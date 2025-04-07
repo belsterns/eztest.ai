@@ -695,11 +695,12 @@ export class GitHubProvider implements GitProvider {
       );
 
       const model = new AzureChatOpenAI({
-        azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY!,
-        azureOpenAIApiInstanceName: "azureopenai-BELSTERNS-southindia-dev-01",
-        azureOpenAIApiVersion: "2024-10-01-preview",
-        azureOpenAIApiDeploymentName: "gpt-4o-mini",
-        temperature: 0.8,
+        azureOpenAIApiKey: process.env.AZURE_OPENAI_API_KEY,
+        azureOpenAIApiInstanceName: process.env.AZURE_OPENAI_API_INSTANCE_NAME,
+        azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION,
+        azureOpenAIApiDeploymentName:
+          process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
+        temperature: Number(process.env.AZURE_OPENAI_API_TEMPERATURE),
       });
 
       const prompt = ChatPromptTemplate.fromTemplate(
