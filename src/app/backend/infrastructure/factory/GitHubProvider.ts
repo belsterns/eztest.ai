@@ -373,6 +373,64 @@ export class GitHubProvider implements GitProvider {
           );
           createdConfigs.add("package.json");
         }
+      } else {
+        try {
+          const prompt =
+            ChatPromptTemplate.fromTemplate(`You are a helpful assistant that generates a complete default package manager configuration based on the programming languages used in a repository.
+              For the given file extensions, generate a full default configuration file as it would appear immediately after initializing the project (e.g., using "npm init -y" or "flutter create .") with proper formatting, and add an appropriate test script:
+                - ".js" or ".ts" → include: {{ "test:unit": "jest" }}
+                - ".vue" → include: {{ "test:unit": "vitest" }}
+                - ".dart" → include configuration to run: "flutter test"
+              Return the required files as a JSON array of objects. Each object must contain:
+                - testPath: the expected file path for the package manager
+                - testContent: the full configuration content as a string
+              Your response must be plain JSON — no markdown, no formatting, no comments, and no extra characters.
+              File extensions found in the repo: {fileExtensions}`);
+
+          const fileExtensions = Array.from(
+            new Set(sourceFiles.map((f) => f.filePath.split(".").pop()))
+          )
+            .filter(Boolean)
+            .map((ext) => `.${ext}`)
+            .join(", ");
+
+          const chain = prompt.pipe(model);
+          const response: any = await chain.invoke({ fileExtensions });
+
+          const content =
+            typeof response.content === "string"
+              ? response.content
+              : response.content?.toString() || "";
+
+          let parsedvalue;
+          try {
+            parsedvalue = JSON.parse(content);
+          } catch (parseError) {
+            console.error(
+              `Failed to parse test content for package manager`,
+              parseError
+            );
+          }
+
+          for (const testFile of parsedvalue) {
+            const { testPath, testContent } = testFile;
+            if (createdConfigs.has(testPath)) continue;
+
+            await this.createNewFileForInitializeRepo(
+              repoFullName,
+              newBranch,
+              testPath,
+              `Added ${testPath} file`,
+              {
+                name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+                email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+              },
+              Buffer.from(testContent).toString("base64")
+            );
+          }
+        } catch (err) {
+          console.error(`Error generating package manager:`, err);
+        }
       }
 
       await this.createPullRequest(
@@ -597,6 +655,8 @@ export class GitHubProvider implements GitProvider {
     content: string
   ): Promise<any> {
     try {
+      const fileSha:any = await this.getFileSha(repoFullName,filePath,branchName);
+
       const response = await fetch(
         `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
         {
@@ -611,6 +671,7 @@ export class GitHubProvider implements GitProvider {
             committer,
             content: content,
             branch: branchName,
+            sha: fileSha ? fileSha : null,
           }),
         }
       );
