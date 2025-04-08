@@ -347,8 +347,12 @@ export class GitHubProvider implements GitProvider {
         const pkg = JSON.parse(fileMap["package.json"].content);
         pkg.scripts = pkg.scripts || {};
 
-        if ((endsWith(".js") || endsWith(".ts")) && !pkg.scripts["test:unit"]) {
-          pkg.scripts["test:unit"] = "jest";
+        if (endsWith(".js")  && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "NODE_ENV=dev mocha -r ts-node/register/transpile-only -r tests/loadenv.js 'tests/**/*.js'";
+        }
+
+        if (endsWith(".ts") && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "NODE_ENV=dev mocha -r ts-node/register/transpile-only -r tests/loadenv.ts 'tests/**/*.ts'";
         }
 
         if (endsWith(".vue") && !pkg.scripts["test:unit"]) {
@@ -378,7 +382,8 @@ export class GitHubProvider implements GitProvider {
           const prompt =
             ChatPromptTemplate.fromTemplate(`You are a helpful assistant that generates a complete default package manager configuration based on the programming languages used in a repository.
               For the given file extensions, generate a full default configuration file as it would appear immediately after initializing the project (e.g., using "npm init -y" or "flutter create .") with proper formatting, and add an appropriate test script:
-                - ".js" or ".ts" → include: {{ "test:unit": "jest" }}
+                - ".js" → must include the same: {{ "test:unit": "NODE_ENV=dev mocha -r ts-node/register/transpile-only -r tests/loadenv.js 'tests/**/*.js'" }}
+                - ".ts" → must include the same: {{ "test:unit": "NODE_ENV=dev mocha -r ts-node/register/transpile-only -r tests/loadenv.ts 'tests/**/*.ts'" }}
                 - ".vue" → include: {{ "test:unit": "vitest" }}
                 - ".dart" → include configuration to run: "flutter test"
               Return the required files as a JSON array of objects. Each object must contain:
@@ -441,10 +446,10 @@ export class GitHubProvider implements GitProvider {
         `Auto-generated test files and configuration for detected source code.`
       );
 
-      await prisma.repositories.update({
-        where: { uuid: repoUuid, user_uuid: userUuid },
-        data: { is_initialized: true },
-      });
+      // await prisma.repositories.update({
+      //   where: { uuid: repoUuid, user_uuid: userUuid },
+      //   data: { is_initialized: true },
+      // });
 
       return {
         message: `Repository initialized successfully. Branch '${newBranch}' created with test cases.`,
