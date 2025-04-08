@@ -2,7 +2,11 @@ import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 import fetch from "node-fetch";
 import { AzureChatOpenAI } from "@langchain/openai";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
+import {
+  ChatPromptTemplate,
+  HumanMessagePromptTemplate,
+  SystemMessagePromptTemplate,
+} from "@langchain/core/prompts";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -234,21 +238,21 @@ export class GitHubProvider implements GitProvider {
         ".js",
         ".ts",
         ".jsx",
-        ".tsx", // JavaScript/TypeScript
-        ".py", // Python
-        ".java", // Java
-        ".go", // Go
-        ".rb", // Ruby
-        ".php", // PHP
-        ".cs", // C#
-        ".swift", // Swift
+        ".tsx",
+        ".py",
+        ".java",
+        ".go",
+        ".rb",
+        ".php",
+        ".cs",
+        ".swift",
         ".kt",
-        ".kts", // Kotlin
-        ".dart", // Dart (Flutter)
+        ".kts",
+        ".dart",
         ".html",
         ".css",
         ".scss",
-        ".vue", // Frontend
+        ".vue",
       ];
 
       const sourceFiles = fileContent.filter((item) => {
@@ -265,13 +269,34 @@ export class GitHubProvider implements GitProvider {
         azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION,
         azureOpenAIApiDeploymentName:
           process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
-        temperature: Number(process.env.AZURE_OPENAI_API_TEMPERATURE),
+        temperature: Number(process.env.AZURE_OPENAI_API_TEMPERATURE) || 0.2,
       });
 
       const createdConfigs = new Set<string>();
       const fileMap = Object.fromEntries(
         fileContent.map((f) => [f.filePath.toLowerCase(), f])
       );
+
+      const prompt = ChatPromptTemplate.fromMessages([
+        SystemMessagePromptTemplate.fromTemplate(`
+        You are an expert developer responsible for generating realistic, working test cases from source code.
+        Return only a JSON array. Do not include markdown, explanations, or surrounding text.
+        Each object in the array must contain:
+        - "testPath": the relative path for the test file
+        - "testContent": the complete content of the test file as plain text.
+        Include config/test setup files only if required. Do not hallucinate test cases if the code doesn't need them.
+        Rules:
+      - Always detect the language from file extension
+      - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
+      - Only generate configs once per language
+      - Don't hallucinate tests for files like README, JSON, or config files
+      `),
+        HumanMessagePromptTemplate.fromTemplate(`
+        Code file: {file.filePath}
+        Content:
+        {file.content}
+      `),
+      ]);
 
       for (const file of sourceFiles) {
         if (!file.content) {
@@ -282,16 +307,6 @@ export class GitHubProvider implements GitProvider {
         }
 
         try {
-          const prompt = ChatPromptTemplate.fromTemplate(`
-        You are a developer specialized in multi-language applications (JavaScript, Python, Java, Go, PHP, Ruby, Swift, Kotlin, Dart, etc.).
-        Analyze the code file at {file.filePath} and its content.
-        Return an array of objects. Each object MUST have:
-        - testPath: the path to the test file to be created
-        - testContent: the content of the test
-        If the code requires a test config (e.g., Jest, Pytest, Mocha, Flutter test), include an object with testPath and testContent.
-        Do NOT include markdown, backticks, or explanations.
-      `);
-
           const chain = prompt.pipe(model);
           const response: any = await chain.invoke({
             "file.filePath": file.filePath,
@@ -302,6 +317,13 @@ export class GitHubProvider implements GitProvider {
             typeof response.content === "string"
               ? response.content
               : response.content?.toString() || "";
+
+          if (!content.trim().startsWith("[")) {
+            console.error(
+              `Model response is not a JSON array for ${file.filePath}`
+            );
+            continue;
+          }
 
           let parsedvalue;
           try {
@@ -347,12 +369,10 @@ export class GitHubProvider implements GitProvider {
         const pkg = JSON.parse(fileMap["package.json"].content);
         pkg.scripts = pkg.scripts || {};
 
-        if (endsWith(".js")  && !pkg.scripts["test:unit"]) {
-          pkg.scripts["test:unit"] = "NODE_ENV=dev mocha -r ts-node/register/transpile-only -r tests/loadenv.js 'tests/**/*.js'";
-        }
-
-        if (endsWith(".ts") && !pkg.scripts["test:unit"]) {
-          pkg.scripts["test:unit"] = "NODE_ENV=dev mocha -r ts-node/register/transpile-only -r tests/loadenv.ts 'tests/**/*.ts'";
+        if ((endsWith(".js") || endsWith(".ts")) && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "jest";
+          pkg.devDependencies = pkg.devDependencies || {};
+          pkg.devDependencies["jest"] = "^29.7.0";
         }
 
         if (endsWith(".vue") && !pkg.scripts["test:unit"]) {
@@ -379,18 +399,34 @@ export class GitHubProvider implements GitProvider {
         }
       } else {
         try {
-          const prompt =
-            ChatPromptTemplate.fromTemplate(`You are a helpful assistant that generates a complete default package manager configuration based on the programming languages used in a repository.
-              For the given file extensions, generate a full default configuration file as it would appear immediately after initializing the project (e.g., using "npm init -y" or "flutter create .") with proper formatting, and add an appropriate test script:
-                - ".js" → must include the same: {{ "test:unit": "NODE_ENV=dev mocha -r ts-node/register/transpile-only -r tests/loadenv.js 'tests/**/*.js'" }}
-                - ".ts" → must include the same: {{ "test:unit": "NODE_ENV=dev mocha -r ts-node/register/transpile-only -r tests/loadenv.ts 'tests/**/*.ts'" }}
-                - ".vue" → include: {{ "test:unit": "vitest" }}
-                - ".dart" → include configuration to run: "flutter test"
-              Return the required files as a JSON array of objects. Each object must contain:
-                - testPath: the expected file path for the package manager
-                - testContent: the full configuration content as a string
-              Your response must be plain JSON — no markdown, no formatting, no comments, and no extra characters.
-              File extensions found in the repo: {fileExtensions}`);
+          const configPrompt = ChatPromptTemplate.fromMessages([
+            SystemMessagePromptTemplate.fromTemplate(`
+            You are an expert developer responsible for generating language-specific test configuration files for a code repository.
+            
+            Return only a JSON array. Do not include markdown, explanations, or surrounding text.
+            
+            Each object in the array must include:
+            - "testPath": the relative path where the config file should be saved (e.g., jest.config.js, vitest.config.ts, etc.)
+            - "testContent": the full content of the config file as plain text
+
+            Rules:
+            - Always detect the language from file extension
+            - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
+            - Only generate configs once per language
+            - Don't hallucinate tests for files like README, JSON, or config files
+
+            Use the detected file extensions to infer the tech stack and tools used.
+            Examples:
+            - If .js or .ts is detected, include a valid Jest config (jest.config.js or .json)
+            - If .py is detected, include pytest.ini or tox.ini
+            - If .dart is detected, use flutter test setup
+            - If .vue is found, prefer vitest or vue-test-utils
+            Only include config files that are truly necessary.
+          `),
+            HumanMessagePromptTemplate.fromTemplate(`
+            File extensions found in the repo: {fileExtensions}
+          `),
+          ]);
 
           const fileExtensions = Array.from(
             new Set(sourceFiles.map((f) => f.filePath.split(".").pop()))
@@ -399,7 +435,7 @@ export class GitHubProvider implements GitProvider {
             .map((ext) => `.${ext}`)
             .join(", ");
 
-          const chain = prompt.pipe(model);
+          const chain = configPrompt.pipe(model);
           const response: any = await chain.invoke({ fileExtensions });
 
           const content =
@@ -407,31 +443,35 @@ export class GitHubProvider implements GitProvider {
               ? response.content
               : response.content?.toString() || "";
 
-          let parsedvalue;
-          try {
-            parsedvalue = JSON.parse(content);
-          } catch (parseError) {
-            console.error(
-              `Failed to parse test content for package manager`,
-              parseError
-            );
-          }
+          if (!content.trim().startsWith("[")) {
+            console.error("Model response for config is not a JSON array.");
+          } else {
+            let parsedvalue;
+            try {
+              parsedvalue = JSON.parse(content);
+              for (const testFile of parsedvalue) {
+                const { testPath, testContent } = testFile;
+                if (createdConfigs.has(testPath)) continue;
 
-          for (const testFile of parsedvalue) {
-            const { testPath, testContent } = testFile;
-            if (createdConfigs.has(testPath)) continue;
-
-            await this.createNewFileForInitializeRepo(
-              repoFullName,
-              newBranch,
-              testPath,
-              `Added ${testPath} file`,
-              {
-                name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
-                email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
-              },
-              Buffer.from(testContent).toString("base64")
-            );
+                await this.createNewFileForInitializeRepo(
+                  repoFullName,
+                  newBranch,
+                  testPath,
+                  `Added ${testPath} file`,
+                  {
+                    name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+                    email:
+                      process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+                  },
+                  Buffer.from(testContent).toString("base64")
+                );
+              }
+            } catch (parseError) {
+              console.error(
+                "Failed to parse test content for package manager",
+                parseError
+              );
+            }
           }
         } catch (err) {
           console.error(`Error generating package manager:`, err);
@@ -660,7 +700,11 @@ export class GitHubProvider implements GitProvider {
     content: string
   ): Promise<any> {
     try {
-      const fileSha:any = await this.getFileSha(repoFullName,filePath,branchName);
+      const fileSha: any = await this.getFileSha(
+        repoFullName,
+        filePath,
+        branchName
+      );
 
       const response = await fetch(
         `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
