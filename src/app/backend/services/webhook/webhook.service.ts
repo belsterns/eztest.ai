@@ -51,7 +51,6 @@ export class WebhookService {
         baseBranch,
         newBranch
       );
-      return null;
     } else {
       console.log(`Branch "${newBranch}" already exists.`);
     }

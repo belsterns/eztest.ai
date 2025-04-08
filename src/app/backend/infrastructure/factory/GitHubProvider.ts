@@ -631,8 +631,7 @@ export class GitHubProvider implements GitProvider {
     newBranch: string
   ): Promise<any> {
     try {
-      const baseBranchResponse = await this.branchExists(repoFullName,baseBranch);
-      const latestCommitSHA = baseBranchResponse.object.sha;
+      const latestCommitSHA = branchResponse.object.sha;
 
       // Fetch the commit details
       const commitResponse = await fetch(
