@@ -285,11 +285,13 @@ export class GitHubProvider implements GitProvider {
         - "testPath": the relative path for the test file
         - "testContent": the complete content of the test file as plain text.
         Include config/test setup files only if required. Do not hallucinate test cases if the code doesn't need them.
+        
         Rules:
-      - Always detect the language from file extension
-      - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
-      - Only generate configs once per language
-      - Don't hallucinate tests for files like README, JSON, or config files
+        - Should read and analyze the source code to write a exact test case.
+        - Always detect the language from file extension
+        - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
+        - Only generate configs once per language
+        - Don't hallucinate tests for files like README, JSON, or config files
       `),
         HumanMessagePromptTemplate.fromTemplate(`
         Code file: {file.filePath}
@@ -411,6 +413,7 @@ export class GitHubProvider implements GitProvider {
 
             Rules:
             - Always detect the language from file extension
+            - Should read and analyze the source code to write a exact test case.
             - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
             - Only generate configs once per language
             - Don't hallucinate tests for files like README, JSON, or config files
