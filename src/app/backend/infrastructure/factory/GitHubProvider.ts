@@ -446,10 +446,10 @@ export class GitHubProvider implements GitProvider {
         `Auto-generated test files and configuration for detected source code.`
       );
 
-      // await prisma.repositories.update({
-      //   where: { uuid: repoUuid, user_uuid: userUuid },
-      //   data: { is_initialized: true },
-      // });
+      await prisma.repositories.update({
+        where: { uuid: repoUuid, user_uuid: userUuid },
+        data: { is_initialized: true },
+      });
 
       return {
         message: `Repository initialized successfully. Branch '${newBranch}' created with test cases.`,
