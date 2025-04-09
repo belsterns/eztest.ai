@@ -9,7 +9,14 @@ WORKDIR /app
 
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 
-RUN npm ci
+RUN \
+  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+RUN npm install prisma@6.3.1 @prisma/client@6.3.1
 
 # 2. Rebuild the source code only when needed
 FROM base AS builder
@@ -26,8 +33,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 ENV RUST_BACKTRACE=1
 
-ENV NODE_ENV=dev
-
+ENV NODE_ENV=production
 
 RUN npm run build
 
