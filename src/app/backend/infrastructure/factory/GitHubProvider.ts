@@ -2,7 +2,11 @@ import { GitProvider } from "./GitProvider";
 import prisma from "@/lib/prisma";
 import fetch from "node-fetch";
 import { AzureChatOpenAI } from "@langchain/openai";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
+import {
+  ChatPromptTemplate,
+  HumanMessagePromptTemplate,
+  SystemMessagePromptTemplate,
+} from "@langchain/core/prompts";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -197,7 +201,7 @@ export class GitHubProvider implements GitProvider {
         );
       }
 
-      const newBranch: string = `${baseBranch}_fullTest`;
+      const newBranch = `${baseBranch}_fullTest`;
 
       const branchData = await this.fetchAPI(
         `${this.apiBaseUrl}/repos/${repoFullName}/git/ref/heads/${baseBranch}`
@@ -220,16 +224,13 @@ export class GitHubProvider implements GitProvider {
 
       const shouldExcludeFile = (filePath: string): boolean => {
         const lowerPath = filePath.toLowerCase();
-
         const exclusionPatterns = [
           /(^|\/)(package|requirements|pyproject|pom|build|makefile)[^/]*$/,
           /(^|\/)(jest|babel|tsconfig|eslint|vite|webpack|tailwind|prettier)\.config.*$/,
           /\.(lock|md|txt|json|yml|yaml|ini|toml|cfg)$/i,
           /\.(gitignore|dockerignore|gitattributes)$/i,
-          /(^|\/)\.github(\/|$)/,
-          /(^|\/)(readme|license)(\.|$)/,
+          /(^|\/)(build|dist|node_modules|\.git|\.github|\.vscode)(\/|$)/,
         ];
-
         return exclusionPatterns.some((pattern) => pattern.test(lowerPath));
       };
 
@@ -244,6 +245,14 @@ export class GitHubProvider implements GitProvider {
         ".rb",
         ".php",
         ".cs",
+        ".swift",
+        ".kt",
+        ".kts",
+        ".dart",
+        ".html",
+        ".css",
+        ".scss",
+        ".vue",
       ];
 
       const sourceFiles = fileContent.filter((item) => {
@@ -260,10 +269,36 @@ export class GitHubProvider implements GitProvider {
         azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION,
         azureOpenAIApiDeploymentName:
           process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME,
-        temperature: Number(process.env.AZURE_OPENAI_API_TEMPERATURE),
+        temperature: Number(process.env.AZURE_OPENAI_API_TEMPERATURE) || 0.2,
       });
 
       const createdConfigs = new Set<string>();
+      const fileMap = Object.fromEntries(
+        fileContent.map((f) => [f.filePath.toLowerCase(), f])
+      );
+
+      const prompt = ChatPromptTemplate.fromMessages([
+        SystemMessagePromptTemplate.fromTemplate(`
+        You are an expert developer responsible for generating realistic, working test cases from source code.
+        Return only a JSON array. Do not include markdown, explanations, or surrounding text.
+        Each object in the array must contain:
+        - "testPath": the relative path for the test file
+        - "testContent": the complete content of the test file as plain text.
+        Include config/test setup files only if required. Do not hallucinate test cases if the code doesn't need them.
+        
+        Rules:
+        - Should read and analyze the source code to write a exact test case.
+        - Always detect the language from file extension
+        - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
+        - Only generate configs once per language
+        - Don't hallucinate tests for files like README, JSON, or config files
+      `),
+        HumanMessagePromptTemplate.fromTemplate(`
+        Code file: {file.filePath}
+        Content:
+        {file.content}
+      `),
+      ]);
 
       for (const file of sourceFiles) {
         if (!file.content) {
@@ -274,16 +309,6 @@ export class GitHubProvider implements GitProvider {
         }
 
         try {
-          const prompt = ChatPromptTemplate.fromTemplate(`
-          You are a developer specialized in multi-language applications (JavaScript, Python, Java, Go, PHP, Ruby, etc.).
-          Analyze the code file at {file.filePath} and its content.
-          Return an array of objects. Each object MUST have:
-          - testPath: the path to the test file to be created
-          - testContent: the content of the test
-          If the code requires a test config (e.g., Jest, Pytest, Mocha), include an object with testPath as the config file and its testContent.
-          Do NOT include markdown formatting, backticks, or explanations.
-        `);
-
           const chain = prompt.pipe(model);
           const response: any = await chain.invoke({
             "file.filePath": file.filePath,
@@ -294,6 +319,13 @@ export class GitHubProvider implements GitProvider {
             typeof response.content === "string"
               ? response.content
               : response.content?.toString() || "";
+
+          if (!content.trim().startsWith("[")) {
+            console.error(
+              `Model response is not a JSON array for ${file.filePath}`
+            );
+            continue;
+          }
 
           let parsedvalue;
           try {
@@ -308,10 +340,7 @@ export class GitHubProvider implements GitProvider {
 
           for (const testFile of parsedvalue) {
             const { testPath, testContent } = testFile;
-
             if (createdConfigs.has(testPath)) continue;
-
-            const base64Content = Buffer.from(testContent).toString("base64");
 
             await this.createNewFileForInitializeRepo(
               repoFullName,
@@ -322,15 +351,10 @@ export class GitHubProvider implements GitProvider {
                 name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
                 email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
               },
-              base64Content
+              Buffer.from(testContent).toString("base64")
             );
 
-            if (
-              testPath.includes("config") ||
-              testPath.includes("jest") ||
-              testPath.includes("pytest") ||
-              testPath.includes(".config")
-            ) {
+            if (/config|jest|pytest|\.ini|\.json|\.yaml|\.yml/.test(testPath)) {
               createdConfigs.add(testPath);
             }
           }
@@ -340,12 +364,129 @@ export class GitHubProvider implements GitProvider {
         }
       }
 
+      const endsWith = (ext: string) =>
+        sourceFiles.some((f) => f.filePath.endsWith(ext));
+
+      if (fileMap["package.json"]) {
+        const pkg = JSON.parse(fileMap["package.json"].content);
+        pkg.scripts = pkg.scripts || {};
+
+        if ((endsWith(".js") || endsWith(".ts")) && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "jest";
+          pkg.devDependencies = pkg.devDependencies || {};
+          pkg.devDependencies["jest"] = "^29.7.0";
+        }
+
+        if (endsWith(".vue") && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "vitest";
+        }
+
+        if (endsWith(".dart") && !pkg.scripts["test:unit"]) {
+          pkg.scripts["test:unit"] = "flutter test";
+        }
+
+        if (Object.keys(pkg.scripts).length) {
+          await this.createNewFileForInitializeRepo(
+            repoFullName,
+            newBranch,
+            "package.json",
+            "Update package.json with test scripts",
+            {
+              name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+              email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+            },
+            Buffer.from(JSON.stringify(pkg, null, 2)).toString("base64")
+          );
+          createdConfigs.add("package.json");
+        }
+      } else {
+        try {
+          const configPrompt = ChatPromptTemplate.fromMessages([
+            SystemMessagePromptTemplate.fromTemplate(`
+            You are an expert developer responsible for generating language-specific test configuration files for a code repository.
+            
+            Return only a JSON array. Do not include markdown, explanations, or surrounding text.
+            
+            Each object in the array must include:
+            - "testPath": the relative path where the config file should be saved (e.g., jest.config.js, vitest.config.ts, etc.)
+            - "testContent": the full content of the config file as plain text
+
+            Rules:
+            - Always detect the language from file extension
+            - Should read and analyze the source code to write a exact test case.
+            - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
+            - Only generate configs once per language
+            - Don't hallucinate tests for files like README, JSON, or config files
+
+            Use the detected file extensions to infer the tech stack and tools used.
+            Examples:
+            - If .js or .ts is detected, include a valid Jest config (jest.config.js or .json)
+            - If .py is detected, include pytest.ini or tox.ini
+            - If .dart is detected, use flutter test setup
+            - If .vue is found, prefer vitest or vue-test-utils
+            Only include config files that are truly necessary.
+          `),
+            HumanMessagePromptTemplate.fromTemplate(`
+            File extensions found in the repo: {fileExtensions}
+          `),
+          ]);
+
+          const fileExtensions = Array.from(
+            new Set(sourceFiles.map((f) => f.filePath.split(".").pop()))
+          )
+            .filter(Boolean)
+            .map((ext) => `.${ext}`)
+            .join(", ");
+
+          const chain = configPrompt.pipe(model);
+          const response: any = await chain.invoke({ fileExtensions });
+
+          const content =
+            typeof response.content === "string"
+              ? response.content
+              : response.content?.toString() || "";
+
+          if (!content.trim().startsWith("[")) {
+            console.error("Model response for config is not a JSON array.");
+          } else {
+            let parsedvalue;
+            try {
+              parsedvalue = JSON.parse(content);
+              for (const testFile of parsedvalue) {
+                const { testPath, testContent } = testFile;
+                if (createdConfigs.has(testPath)) continue;
+
+                await this.createNewFileForInitializeRepo(
+                  repoFullName,
+                  newBranch,
+                  testPath,
+                  `Added ${testPath} file`,
+                  {
+                    name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+                    email:
+                      process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+                  },
+                  Buffer.from(testContent).toString("base64")
+                );
+              }
+            } catch (parseError) {
+              console.error(
+                "Failed to parse test content for package manager",
+                parseError
+              );
+            }
+          }
+        } catch (err) {
+          console.error(`Error generating package manager:`, err);
+        }
+      }
+
       await this.createPullRequest(
         repoFullName,
         newBranch,
         baseBranch,
         `Initialize Repository with Tests`,
-        `Auto-generated test files and configuration for source code.`
+        `Auto-generated test files and configuration for detected source code.`
       );
 
       await prisma.repositories.update({
@@ -562,6 +703,12 @@ export class GitHubProvider implements GitProvider {
     content: string
   ): Promise<any> {
     try {
+      const fileSha: any = await this.getFileSha(
+        repoFullName,
+        filePath,
+        branchName
+      );
+
       const response = await fetch(
         `${this.apiBaseUrl}/repos/${repoFullName}/contents/${filePath}`,
         {
@@ -576,6 +723,7 @@ export class GitHubProvider implements GitProvider {
             committer,
             content: content,
             branch: branchName,
+            sha: fileSha ? fileSha : null,
           }),
         }
       );
@@ -631,7 +779,8 @@ export class GitHubProvider implements GitProvider {
     newBranch: string
   ): Promise<any> {
     try {
-      const latestCommitSHA = branchResponse.object.sha;
+      const baseBranchResponse = await this.branchExists(repoFullName,baseBranch);
+      const latestCommitSHA = baseBranchResponse.object.sha;
 
       // Fetch the commit details
       const commitResponse = await fetch(
