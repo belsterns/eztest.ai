@@ -16,6 +16,8 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
+RUN npm install prisma@6.3.1 @prisma/client@6.3.1
+
 # 2. Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
@@ -29,8 +31,9 @@ RUN npx prisma generate
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-ENV NODE_ENV=production
+ENV RUST_BACKTRACE=1
 
+ENV NODE_ENV=production
 
 RUN npm run build
 
