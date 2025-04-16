@@ -39,13 +39,20 @@ export function configureTestScript(
 
     const matchedExt = getExtensions(sourceFiles);
 
+    const isESM = pkg.type === "module";
+
     if (!pkg.scripts["test:unit"]) {
       switch (matchedExt) {
         case ".js":
         case ".ts":
         case ".jsx":
         case ".tsx":
-          pkg.scripts["test:unit"] = "jest";
+          if (isESM) {
+            pkg.scripts["test:unit"] = "cross-env NODE_OPTIONS=--experimental-vm-modules jest";
+            pkg.devDependencies["cross-env"] = "^7.0.3";
+          } else {
+            pkg.scripts["test:unit"] = "jest";
+          }
           pkg.devDependencies["jest"] = "^29.7.0";
           break;
 
@@ -65,6 +72,7 @@ export function configureTestScript(
     return { pkg, matchedExt: null };
   }
 }
+
 
 export async function createTestConfig(
   pkg: any,
