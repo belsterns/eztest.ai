@@ -7,6 +7,7 @@ import {
   HumanMessagePromptTemplate,
   SystemMessagePromptTemplate,
 } from "@langchain/core/prompts";
+import { configureTestScript, createTestConfig, generateDefaultPackageManager } from "../../utils/githubProviderUtils";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -220,6 +221,7 @@ export class GitHubProvider implements GitProvider {
         repoFullName,
         newBranch
       );
+
       const fileContent = await this.fetchAndDecodeFiles(files);
 
       const shouldExcludeFile = (filePath: string): boolean => {
@@ -273,31 +275,93 @@ export class GitHubProvider implements GitProvider {
       });
 
       const createdConfigs = new Set<string>();
-      const fileMap = Object.fromEntries(
-        fileContent.map((f) => [f.filePath.toLowerCase(), f])
-      );
+      const fileMap: Record<string, typeof fileContent[0]> = {};
+      const filePathsOnly: string[] = [];
 
+      for (const file of fileContent) {
+        const lowerPath = file.filePath.toLowerCase();
+        fileMap[lowerPath] = file;
+        filePathsOnly.push(lowerPath);
+      }
+
+      let pkg: any;
+      let matchedExt: string | null = null;
+      
+      if (fileMap["package.json"]) {
+        const existingPkg = JSON.parse(fileMap["package.json"].content);
+        const result = configureTestScript(existingPkg, sourceFiles);
+        pkg = result.pkg;
+        matchedExt = result.matchedExt;
+      
+        await this.createNewFileForInitializeRepo(
+          repoFullName,
+          newBranch,
+          "package.json",
+          "Update package.json with test scripts",
+          {
+            name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+            email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+          },
+          Buffer.from(JSON.stringify(pkg, null, 2)).toString("base64")
+        );
+      
+        createdConfigs.add("package.json");
+      } else {
+        try {
+          const { response, extensions } = await generateDefaultPackageManager(filePathsOnly);
+      
+          const content =
+            typeof response.content === "string"
+              ? response.content
+              : response.content?.toString() || "";
+      
+          if (!content.trim().startsWith("[")) {
+            console.error("Model response for package manager config is not a JSON array.");
+          } else {
+            const parsedValue = JSON.parse(content);
+            const { testContent } = parsedValue[0];
+            matchedExt = extensions;
+            pkg = JSON.parse(testContent); // The generated package.json content
+      
+            await this.parseAndCreateConfigFiles(response, createdConfigs, repoFullName, newBranch);
+          }
+        } catch (err) {
+          console.error("Error generating package manager:", err);
+        }
+      }
+      
+      // Now generate the test config
+      if (pkg && matchedExt) {
+        const testConfigResponse = await createTestConfig(pkg, filePathsOnly, matchedExt);
+        await this.parseAndCreateConfigFiles(testConfigResponse, createdConfigs, repoFullName, newBranch);
+      }
+      
       const prompt = ChatPromptTemplate.fromMessages([
         SystemMessagePromptTemplate.fromTemplate(`
-        You are an expert developer responsible for generating realistic, working test cases from source code.
-        Return only a JSON array. Do not include markdown, explanations, or surrounding text.
-        Each object in the array must contain:
-        - "testPath": the relative path for the test file
-        - "testContent": the complete content of the test file as plain text.
-        Include config/test setup files only if required. Do not hallucinate test cases if the code doesn't need them.
-        
-        Rules:
-        - Should read and analyze the source code to write a exact test case.
-        - Always detect the language from file extension
-        - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
-        - Only generate configs once per language
-        - Don't hallucinate tests for files like README, JSON, or config files
-      `),
+          You are an expert developer responsible for generating realistic, working test cases from source code.
+          
+          Return only a JSON array. Do not include markdown, explanations, or surrounding text.
+      
+          Each object in the array must contain:
+          - "testPath": the relative path for the test file
+          - "testContent": the complete content of the test file as plain text
+      
+          Repo structure is provided, so use it to decide proper placement for test files.
+      
+          Rules:
+          - Read and analyze the source code to write exact test cases.
+          - Always detect the language from the file extension.
+          - Use a consistent structure for test file placement:
+            - Place test files in a "__tests__" subfolder in the **same directory** as the source file.
+            - Do not place tests at the root unless the source file is at the root.
+            - Ensure only one "__tests__" folder per source directory.
+          - Strictly Do not generate tests for non-source files like README, JSON, or config files
+        `),
         HumanMessagePromptTemplate.fromTemplate(`
-        Code file: {file.filePath}
-        Content:
-        {file.content}
-      `),
+          Code file: {file.filePath}
+          Content: {file.content}
+          All project file paths: {filePathsOnly}
+        `),
       ]);
 
       for (const file of sourceFiles) {
@@ -313,6 +377,7 @@ export class GitHubProvider implements GitProvider {
           const response: any = await chain.invoke({
             "file.filePath": file.filePath,
             "file.content": file.content,
+            "filePathsOnly": filePathsOnly,
           });
 
           const content =
@@ -364,123 +429,6 @@ export class GitHubProvider implements GitProvider {
         }
       }
 
-      const endsWith = (ext: string) =>
-        sourceFiles.some((f) => f.filePath.endsWith(ext));
-
-      if (fileMap["package.json"]) {
-        const pkg = JSON.parse(fileMap["package.json"].content);
-        pkg.scripts = pkg.scripts || {};
-
-        if ((endsWith(".js") || endsWith(".ts")) && !pkg.scripts["test:unit"]) {
-          pkg.scripts["test:unit"] = "jest";
-          pkg.devDependencies = pkg.devDependencies || {};
-          pkg.devDependencies["jest"] = "^29.7.0";
-        }
-
-        if (endsWith(".vue") && !pkg.scripts["test:unit"]) {
-          pkg.scripts["test:unit"] = "vitest";
-        }
-
-        if (endsWith(".dart") && !pkg.scripts["test:unit"]) {
-          pkg.scripts["test:unit"] = "flutter test";
-        }
-
-        if (Object.keys(pkg.scripts).length) {
-          await this.createNewFileForInitializeRepo(
-            repoFullName,
-            newBranch,
-            "package.json",
-            "Update package.json with test scripts",
-            {
-              name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
-              email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
-            },
-            Buffer.from(JSON.stringify(pkg, null, 2)).toString("base64")
-          );
-          createdConfigs.add("package.json");
-        }
-      } else {
-        try {
-          const configPrompt = ChatPromptTemplate.fromMessages([
-            SystemMessagePromptTemplate.fromTemplate(`
-            You are an expert developer responsible for generating language-specific test configuration files for a code repository.
-            
-            Return only a JSON array. Do not include markdown, explanations, or surrounding text.
-            
-            Each object in the array must include:
-            - "testPath": the relative path where the config file should be saved (e.g., jest.config.js, vitest.config.ts, etc.)
-            - "testContent": the full content of the config file as plain text
-
-            Rules:
-            - Always detect the language from file extension
-            - Should read and analyze the source code to write a exact test case.
-            - If necessary, generate a config file (e.g. jest.config.js for JS/TS, pytest.ini for Python)
-            - Only generate configs once per language
-            - Don't hallucinate tests for files like README, JSON, or config files
-
-            Use the detected file extensions to infer the tech stack and tools used.
-            Examples:
-            - If .js or .ts is detected, include a valid Jest config (jest.config.js or .json)
-            - If .py is detected, include pytest.ini or tox.ini
-            - If .dart is detected, use flutter test setup
-            - If .vue is found, prefer vitest or vue-test-utils
-            Only include config files that are truly necessary.
-          `),
-            HumanMessagePromptTemplate.fromTemplate(`
-            File extensions found in the repo: {fileExtensions}
-          `),
-          ]);
-
-          const fileExtensions = Array.from(
-            new Set(sourceFiles.map((f) => f.filePath.split(".").pop()))
-          )
-            .filter(Boolean)
-            .map((ext) => `.${ext}`)
-            .join(", ");
-
-          const chain = configPrompt.pipe(model);
-          const response: any = await chain.invoke({ fileExtensions });
-
-          const content =
-            typeof response.content === "string"
-              ? response.content
-              : response.content?.toString() || "";
-
-          if (!content.trim().startsWith("[")) {
-            console.error("Model response for config is not a JSON array.");
-          } else {
-            let parsedvalue;
-            try {
-              parsedvalue = JSON.parse(content);
-              for (const testFile of parsedvalue) {
-                const { testPath, testContent } = testFile;
-                if (createdConfigs.has(testPath)) continue;
-
-                await this.createNewFileForInitializeRepo(
-                  repoFullName,
-                  newBranch,
-                  testPath,
-                  `Added ${testPath} file`,
-                  {
-                    name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
-                    email:
-                      process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
-                  },
-                  Buffer.from(testContent).toString("base64")
-                );
-              }
-            } catch (parseError) {
-              console.error(
-                "Failed to parse test content for package manager",
-                parseError
-              );
-            }
-          }
-        } catch (err) {
-          console.error(`Error generating package manager:`, err);
-        }
-      }
-
       await this.createPullRequest(
         repoFullName,
         newBranch,
@@ -502,6 +450,50 @@ export class GitHubProvider implements GitProvider {
       throw new Error(
         "Failed to fully initialize the repository. See logs for details."
       );
+    }
+  }
+
+  private  async parseAndCreateConfigFiles(
+    response: any,
+    createdConfigs: any,
+    repoFullName: string,
+    newBranch: string,
+  ): Promise<void> {
+    // console.log("testconfig response -----------------> ", response);
+    const content =
+      typeof response?.content === "string"
+        ? response.content
+        : response?.content?.toString() || "";
+  
+    if (!content.trim().startsWith("[")) {
+      console.error("Model response for config is not a JSON array.");
+      return;
+    }
+  
+    try {
+      const parsedConfigs = JSON.parse(content);
+  
+      for (const { testPath, testContent } of parsedConfigs) {
+        if (createdConfigs.has(testPath)) continue;
+  
+        await this.createNewFileForInitializeRepo(
+          repoFullName,
+          newBranch,
+          testPath,
+          `Added ${testPath} file`,
+          {
+            name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+            email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
+          },
+          Buffer.from(testContent).toString("base64")
+        );
+  
+        createdConfigs.add(testPath);
+      }
+
+      return;
+    } catch (err) {
+      console.error("Failed to parse test content for config generation", err);
     }
   }
 
