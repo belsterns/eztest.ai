@@ -7,37 +7,107 @@ export const userCreatedEmailTemplate = (user: any, password?: string) => {
     ? `${process.env.NEXTAUTH_URL}/login`
     : `${process.env.NEXTAUTH_URL}/workspaces`;
 
-  return ` 
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Welcome to EZTest AI</title>
-<style>
-  body { font-family: 'Work Sans', sans-serif; background-color: #f7f7f7; margin: 0; padding: 0; color: #333; }
-  table { width: 100%; max-width: 600px; margin: 0 auto; background-color: #fff; border-collapse: collapse; border-radius: 5px; }
-  .header { background-color: #2A2F42; color: #fff; text-align: center; padding: 20px 0; }
-  .logo { display: block; margin: 0 auto; max-width: 200px; height: auto; }
-  .content { padding: 20px; }
-  .button { background-color: #2a2f42; color: #fff; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block; }
-  .footer { text-align: center; padding: 20px; background-color: #f8f8f8; font-size: 14px; }
-</style>
-</head>
-<body>
-<table>
-  <tr><td class="header"><img src="${logoURL}" alt="EZTest AI Logo" class="logo"><h1>Welcome to EZTest AI</h1></td></tr>
-  <tr><td class="content">
-    <p>Hi ${user.full_name},</p>
-    <p>We’re thrilled to have you on board! 🎉</p>
-    ${password ? `<p><b>Your login credentials:</b></p><ul><li><b>Username:</b> ${user.email}</li><li><b>Password:</b> ${password}</li></ul>` : `<p>To get started, simply log in using the link below:</p>`}
-    <p><a href="${loginLink}" class="button">Click here to login</a></p>
-    <p>Need help? Contact <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
-    <p>Best, The EZTest AI Team</p>
-  </td></tr>
-  <tr><td class="footer">Copyright © 2025 EZTest AI. All rights reserved.</td></tr>
-</table>
-</body>
-</html>
-`;
+  return `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Welcome to EZTest AI</title>
+          <style>
+            body {
+              font-family: 'Work Sans', sans-serif;
+              background-color: #f7f7f7;
+              margin: 0;
+              padding: 0;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 30px auto;
+              background-color: #ffffff;
+              border-radius: 8px;
+              overflow: hidden;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            }
+            .header {
+              background-color: #2A2F42;
+              color: #ffffff;
+              text-align: center;
+              padding: 30px 20px;
+            }
+            .logo {
+              max-width: 180px;
+              margin-bottom: 15px;
+            }
+            .content {
+              padding: 25px 30px;
+              line-height: 1.6;
+            }
+            .content p {
+              margin: 0 0 15px;
+            }
+            .button {
+              display: inline-block;
+              background-color: #2A2F42;
+              color: #ffffff;
+              padding: 12px 24px;
+              margin: 20px 0;
+              text-decoration: none;
+              border-radius: 5px;
+              font-weight: 500;
+            }
+            .footer {
+              text-align: center;
+              padding: 20px;
+              font-size: 13px;
+              background-color: #f0f0f0;
+              color: #666;
+            }
+            ul {
+              padding-left: 20px;
+            }
+
+            @media (max-width: 600px) {
+              .content {
+                padding: 20px;
+              }
+              .button {
+                display: block;
+                width: 100%;
+                text-align: center;
+              }
+            }
+          </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <img src="${logoURL}" alt="EZTest AI Logo" class="logo">
+                <h1>Welcome to EZTest AI</h1>
+              </div>
+              <div class="content">
+                <p>Hi ${user.full_name},</p>
+                <p>We’re thrilled to have you on board! 🎉</p>
+                ${
+                  password
+                    ? `<p><strong>Your login credentials:</strong></p>
+                      <ul>
+                        <li><strong>Username:</strong> ${user.email}</li>
+                        <li><strong>Password:</strong> ${password}</li>
+                      </ul>
+                      <p>We recommend changing your password after logging in for security.</p>`
+                    : `<p>To get started, simply log in using the link below:</p>`
+                }
+                <p><a href="${loginLink}" class="button">Access Your Account</a></p>
+                <p>Need help? Reach us at <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+                <p>Welcome aboard,<br><strong>The EZTest AI Team</strong></p>
+              </div>
+              <div class="footer">
+                &copy; 2025 EZTest AI. All rights reserved.
+              </div>
+            </div>
+          </body>
+          </html>
+          `;
 };
