@@ -47,32 +47,25 @@ export class RepositoryController {
     repoToken: string
   ) {
     try {
+      // Validate input
       await this.repositoryVerificationValidator.SaveRepositoryDetails(body);
 
       const { host_url, repo_url, workspace_uuid } = body;
       const { hostName, orgName, repoName } = parseRepoUrl(repo_url);
       const baseUrl = fetchBaseUrl(hostName, host_url);
 
-      // Verify repository existence
-      await this.verifyRepository(
-        hostName,
-        baseUrl,
-        orgName,
-        repoName,
-        repoToken
-      );
+      // Verify repository and workspace
+      await Promise.all([
+        this.verifyRepository(hostName, baseUrl, orgName, repoName, repoToken),
+        this.workspaceService.fetchWorkspace(workspace_uuid),
+        this.repositoryService.fetchRepoDetailsByName(
+          userUuid,
+          orgName,
+          repoName
+        ),
+      ]);
 
-      // Ensure workspace exists
-      await this.workspaceService.fetchWorkspace(workspace_uuid);
-
-      // Fetch repository details
-      await this.repositoryService.fetchRepoDetailsByName(
-        userUuid,
-        orgName,
-        repoName
-      );
-
-      // Prepare repository details
+      // Save repository details
       const repositoryData = {
         user_uuid: userUuid,
         workspace_uuid,
@@ -88,33 +81,23 @@ export class RepositoryController {
       const repository =
         await this.repositoryService.saveRepositoryDetails(repositoryData);
 
-      const {
-        created_at,
-        is_active,
-        is_initialized,
-        remote_origin,
-        updated_at,
-        uuid,
-        webhook_uuid,
-        user_uuid,
-      } = repository;
-
       const response = {
-        uuid,
-        created_at,
-        repo_url: repo_url,
+        uuid: repository.uuid,
+        created_at: repository.created_at,
+        updated_at: repository.updated_at,
+        is_active: repository.is_active,
+        is_initialized: repository.is_initialized,
+        repo_url,
         host_url: repository.host_url,
-        is_active,
-        is_initialized,
         organization_name: repository.organization_name,
-        remote_origin,
+        remote_origin: repository.remote_origin,
         repo_name: repository.repo_name,
-        updated_at,
-        webhook_uuid,
-        user_uuid,
+        user_uuid: repository.user_uuid,
         workspace_uuid,
+        webhook_uuid: repository.webhook_uuid,
         webhook_url: `${process.env.DOMAIN_BASE_URL}/api/v1/webhook/${repository.webhook_uuid}`,
       };
+
       return {
         message: StaticMessage.RepoDetailsSavedSuccessfully,
         data: response,
