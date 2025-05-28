@@ -1,14 +1,19 @@
-import { useState } from 'react';
-import { DataGrid } from '@mui/x-data-grid';
-import { Button, IconButton } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { Repository } from './repositories';
-import DeletePopup from '../../elements/popup/deleteConfirmation';
-import AppLoader from '../../elements/loader/loader';
+import { useState } from "react";
+import { DataGrid } from "@mui/x-data-grid";
+import { Button, IconButton } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Repository } from "./repositories";
+import DeletePopup from "../../elements/popup/deleteConfirmation";
+import AppLoader from "../../elements/loader/loader";
 
 interface CustomizedDataGridProps {
-  columns: { field: string; headerName: string; width: number; renderCell?: (params: any) => React.ReactNode }[];
+  columns: {
+    field: string;
+    headerName: string;
+    width: number;
+    renderCell?: (params: any) => React.ReactNode;
+  }[];
   rows: Repository[];
   onInit?: (repo: Repository) => void;
   onEdit?: (repo: Repository) => void;
@@ -16,7 +21,14 @@ interface CustomizedDataGridProps {
   initLoader: { [key: string]: boolean };
 }
 
-export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDelete, initLoader }: CustomizedDataGridProps) {
+export default function CustomizedDataGrid({
+  columns,
+  rows,
+  onInit,
+  onEdit,
+  onDelete,
+  initLoader,
+}: CustomizedDataGridProps) {
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<Repository | null>(null);
 
@@ -31,8 +43,8 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
   };
 
   const actionColumn = {
-    field: 'actions',
-    headerName: 'Action',
+    field: "actions",
+    headerName: "Action",
     width: 200,
     renderCell: (params: any) => (
       <>
@@ -41,7 +53,7 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
           size="small"
           onClick={() => onInit?.(params.row)}
           sx={{ marginRight: 1 }}
-          disabled={params.row.is_initialized} 
+          disabled={params.row.is_initialized}
         >
           {initLoader[`initBtnLoader-${params.row.id}`] ? (
             <AppLoader size={18} sx={{ color: "white" }} />
@@ -64,23 +76,23 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
   return (
     <>
       <DataGrid
-        sx={{ 
-          mt: 3, 
-          '& .MuiDataGrid-cell:focus': {
-            outline: 'none',
+        sx={{
+          mt: 3,
+          "& .MuiDataGrid-cell:focus": {
+            outline: "none",
           },
-          '& .MuiDataGrid-cell': {
-            alignContent: 'center',
-            whiteSpace: 'normal',
-            textOverflow: 'ellipsis',
-            lineHeight: '1.2', 
-            display: 'block', 
+          "& .MuiDataGrid-cell": {
+            alignContent: "center",
+            whiteSpace: "normal",
+            textOverflow: "ellipsis",
+            lineHeight: "1.2",
+            display: "block",
           },
         }}
         rows={rows}
         columns={updatedColumns}
         getRowClassName={(params) =>
-          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
+          params.indexRelativeToCurrentPage % 2 === 0 ? "even" : "odd"
         }
         hideFooter
         disableColumnResize
@@ -89,23 +101,23 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
           filterPanel: {
             filterFormProps: {
               logicOperatorInputProps: {
-                variant: 'outlined',
-                size: 'large',
+                variant: "outlined",
+                size: "large",
               },
               columnInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               operatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               valueInputProps: {
                 InputComponentProps: {
-                  variant: 'outlined',
-                  size: 'small',
+                  variant: "outlined",
+                  size: "small",
                 },
               },
             },
@@ -115,7 +127,7 @@ export default function CustomizedDataGrid({ columns, rows, onInit, onEdit, onDe
       <DeletePopup
         open={deletePopupOpen}
         element="repository"
-        element_name={selectedRow?.repo_name || ''}
+        element_name={selectedRow?.repo_name || ""}
         handleClose={() => setDeletePopupOpen(false)}
         handleDelete={handleDeleteConfirm}
       />
