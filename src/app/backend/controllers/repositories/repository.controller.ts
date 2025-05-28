@@ -28,17 +28,13 @@ export class RepositoryController {
     repoName: string,
     repoToken: string
   ) {
-    try {
-      const strategy = this.repositoryService.getStrategy(hostName);
-      return await strategy.findRepositoryDetails(
-        baseUrl,
-        orgName,
-        repoName,
-        repoToken
-      );
-    } catch (error) {
-      throw error;
-    }
+    const strategy = this.repositoryService.getStrategy(hostName);
+    return strategy.findRepositoryDetails(
+      baseUrl,
+      orgName,
+      repoName,
+      repoToken
+    );
   }
 
   async saveRepositoryDetails(
