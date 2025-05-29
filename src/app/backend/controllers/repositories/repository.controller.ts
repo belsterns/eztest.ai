@@ -274,18 +274,18 @@ export class RepositoryController {
     repoUuid: string
   ) {
     try {
-      const repository = await this.repositoryService.fetchRepoDetails(
+      const { uuid } = await this.repositoryService.fetchRepoDetails(
         userUuid,
         workspaceUuid,
         repoUuid
       );
+      await this.repositoryService.deleteRepository(uuid);
 
-      await this.repositoryService.deleteRepository(repository.uuid);
       return {
         message: StaticMessage.RepositoryDeletedSuccessfully,
         data: null,
       };
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   }
