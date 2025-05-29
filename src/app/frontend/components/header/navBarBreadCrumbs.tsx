@@ -1,11 +1,11 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { styled, useTheme } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
-import Breadcrumbs, { breadcrumbsClasses } from '@mui/material/Breadcrumbs';
-import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+"use client";
+import { useState, useEffect } from "react";
+import { styled, useTheme } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
+import Breadcrumbs, { breadcrumbsClasses } from "@mui/material/Breadcrumbs";
+import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 const StyledBreadcrumbs = styled(Breadcrumbs)(({ theme }) => ({
   margin: theme.spacing(1, 0),
@@ -14,7 +14,7 @@ const StyledBreadcrumbs = styled(Breadcrumbs)(({ theme }) => ({
     margin: 1,
   },
   [`& .${breadcrumbsClasses.ol}`]: {
-    alignItems: 'center',
+    alignItems: "center",
   },
 }));
 
@@ -25,7 +25,7 @@ interface Item {
 
 export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
   const [mounted, setMounted] = useState(false);
-  const {data: session} = useSession();
+  const { data: session } = useSession();
   const theme = useTheme();
   // Ensure it only renders after mounting to avoid SSR mismatch
   useEffect(() => {
@@ -40,13 +40,13 @@ export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
       separator={<NavigateNextRoundedIcon fontSize="small" />}
     >
       {/* Root Breadcrumb (Organization) */}
-      <Link key="workspaces" href={'/workspaces'} passHref>
+      <Link key="workspaces" href={"/workspaces"} passHref>
         <Typography
           variant="body1"
           sx={{
-            cursor: 'pointer',
-            color: 'gray',
-            textDecoration: 'none',
+            cursor: "pointer",
+            color: "gray",
+            textDecoration: "none",
           }}
         >
           {session?.user?.organization_name}
@@ -62,11 +62,11 @@ export default function NavbarBreadcrumbs({ items }: { items: Item[] }) {
               variant="body1"
               sx={{
                 color: isLast
-                  ? theme.palette.mode === 'dark'
-                    ? 'white'
-                    : 'black'
-                  : 'gray',
-                textDecoration: 'none',
+                  ? theme.palette.mode === "dark"
+                    ? "white"
+                    : "black"
+                  : "gray",
+                textDecoration: "none",
               }}
             >
               {item.label}
