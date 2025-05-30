@@ -1,4 +1,7 @@
 'use client';
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+
 import { styled } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -7,12 +10,11 @@ import MuiToolbar from '@mui/material/Toolbar';
 import { tabsClasses } from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import WorkspacesIcon from '@mui/icons-material/Workspaces';
+
 import SideMenuMobile from './sideMenuMobile';
 import MenuButton from '../../elements/button/menuButton';
 import ColorModeIconDropdown from '../../services/themeprovidor/theme/ColorModeIconDropdown';
-import WorkspacesIcon from '@mui/icons-material/Workspaces';
-import { useState } from 'react';
-import { usePathname } from 'next/navigation';
 
 const Toolbar = styled(MuiToolbar)({
   width: '100%',
