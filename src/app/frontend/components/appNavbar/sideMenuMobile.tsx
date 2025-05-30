@@ -1,5 +1,6 @@
 'use client';
-import * as React from 'react';
+import { signOut } from 'next-auth/react';
+
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -7,7 +8,7 @@ import Drawer, { drawerClasses } from '@mui/material/Drawer';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import { signOut } from 'next-auth/react';
+
 import MenuContent from '../sideMenu/menuContent';
 
 interface SideMenuMobileProps {

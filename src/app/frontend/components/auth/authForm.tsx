@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+
 import {
   Box,
   Typography,
@@ -7,8 +8,9 @@ import {
   FormLabel,
   TextField,
   Link,
-  Button
+  Button,
 } from "@mui/material";
+
 import ForgotPassword from "./forgotPassword";
 import Card from "../../elements/card/authFormcard";
 
@@ -25,40 +27,43 @@ interface AuthFormProps {
   submitBtn: (formData: Record<string, string>) => void;
 }
 
-export default function AuthForm({ formType, fields, submitBtn }: AuthFormProps) {
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [open, setOpen] = useState(false);
-    const isLogIn = formType === "log-in";
-  
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const data: Record<string, string> = {};
-      const newErrors: { [key: string]: string } = {};
-  
-      // Validate input fields
-      fields.forEach(({ name, validation }) => {
-        const value = formData.get(name) as string;
-        data[name] = value;
-        if (validation) {
-          const error = validation(value);
-          if (error) newErrors[name] = error;
-        }
-      });
-  
-      setErrors(newErrors);
-  
-      // If no errors, call the submit callback
-      if (Object.keys(newErrors).length === 0) {
-        submitBtn(data);
+export default function AuthForm({
+  formType,
+  fields,
+  submitBtn,
+}: AuthFormProps) {
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [open, setOpen] = useState(false);
+  const isLogIn = formType === "log-in";
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const data: Record<string, string> = {};
+    const newErrors: { [key: string]: string } = {};
+
+    // Validate input fields
+    fields.forEach(({ name, validation }) => {
+      const value = formData.get(name) as string;
+      data[name] = value;
+      if (validation) {
+        const error = validation(value);
+        if (error) newErrors[name] = error;
       }
-    };
-  
+    });
+
+    setErrors(newErrors);
+
+    // If no errors, call the submit callback
+    if (Object.keys(newErrors).length === 0) {
+      submitBtn(data);
+    }
+  };
 
   return (
-    <Card variant="outlined" >
+    <Card variant="outlined">
       <Typography variant="h4" sx={{ textAlign: "center" }}>
-        { isLogIn ? "Log In" : "Register"}
+        {isLogIn ? "Log In" : "Register"}
       </Typography>
 
       <Box
@@ -83,7 +88,7 @@ export default function AuthForm({ formType, fields, submitBtn }: AuthFormProps)
           </FormControl>
         ))}
 
-        { isLogIn && (
+        {isLogIn && (
           <Link component="button" type="button" onClick={() => setOpen(true)}>
             Forgot your password?
           </Link>
@@ -101,9 +106,9 @@ export default function AuthForm({ formType, fields, submitBtn }: AuthFormProps)
         </Button>
 
         <Typography sx={{ textAlign: "center" }}>
-          { isLogIn ? "Don't have an account?" : "Already have an account?"}{" "}
-          <Link href={ isLogIn ? "/register" : "/login"} variant="body2">
-            { isLogIn ? "Register" : "Log In"}
+          {isLogIn ? "Don't have an account?" : "Already have an account?"}{" "}
+          <Link href={isLogIn ? "/register" : "/login"} variant="body2">
+            {isLogIn ? "Register" : "Log In"}
           </Link>
         </Typography>
       </Box>
