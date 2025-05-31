@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
-import { Box, Button, FormControl, FormLabel, TextField, Select, MenuItem, SelectChangeEvent } from "@mui/material";
+
+import {
+  Box,
+  Button,
+  FormControl,
+  FormLabel,
+  TextField,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+} from "@mui/material";
 
 interface Field {
   label: string;
@@ -17,7 +27,13 @@ interface FormProps {
   onClose: () => void;
 }
 
-export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit, onClose }: FormProps) {
+export default function DynamicForm({
+  mode,
+  fields,
+  initialValues = {},
+  onSubmit,
+  onClose,
+}: FormProps) {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isUpdated, setIsUpdated] = useState(false);
@@ -28,23 +44,31 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
     }
   }, [mode, initialValues]);
 
-  const handleChangeSelectField = (e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>) => {
+  const handleChangeSelectField = (
+    e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>
+  ) => {
     const { name, value } = e.target;
     if (name) {
       setFormData((prev) => {
         const updatedData = { ...prev, [name]: value as string };
-        setIsUpdated(JSON.stringify(updatedData) !== JSON.stringify(initialValues));
+        setIsUpdated(
+          JSON.stringify(updatedData) !== JSON.stringify(initialValues)
+        );
         return updatedData;
       });
     }
   };
-  
-  const handleChangeTextField = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+
+  const handleChangeTextField = (
+    e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>
+  ) => {
     const { name, value } = e.target;
     if (name) {
       setFormData((prev) => {
         const updatedData = { ...prev, [name]: value as string };
-        setIsUpdated(JSON.stringify(updatedData) !== JSON.stringify(initialValues));
+        setIsUpdated(
+          JSON.stringify(updatedData) !== JSON.stringify(initialValues)
+        );
         return updatedData;
       });
     }
@@ -65,12 +89,15 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
       let submitData = { ...formData };
 
       if (mode === "Edit") {
-        submitData = Object.keys(formData).reduce((acc, key) => {
-          if (formData[key] !== initialValues[key]) {
-            acc[key] = formData[key];
-          }
-          return acc;
-        }, {} as Record<string, string>);
+        submitData = Object.keys(formData).reduce(
+          (acc, key) => {
+            if (formData[key] !== initialValues[key]) {
+              acc[key] = formData[key];
+            }
+            return acc;
+          },
+          {} as Record<string, string>
+        );
 
         if (initialValues.uuid) {
           submitData.uuid = initialValues.uuid;
@@ -79,7 +106,7 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
 
       const data: any = { uuid: formData.uuid, ...submitData };
       if (formData.token) {
-          data.token = formData.token;
+        data.token = formData.token;
       }
       onSubmit(data);
       onClose();
@@ -117,7 +144,7 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
               helperText={errors[name]}
               value={formData[name] || ""}
               onChange={handleChangeTextField}
-              multiline={type === "textarea"} 
+              multiline={type === "textarea"}
               rows={type === "textarea" ? 4 : undefined}
             />
           )}
@@ -128,7 +155,11 @@ export default function DynamicForm({ mode, fields, initialValues = {}, onSubmit
         <Button variant="outlined" onClick={onClose}>
           Cancel
         </Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={mode === "Edit" && !isUpdated}>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={mode === "Edit" && !isUpdated}
+        >
           {mode === "Edit" ? "Update" : "Submit"}
         </Button>
       </Box>
