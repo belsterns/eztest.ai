@@ -3,55 +3,47 @@ import { WebhookService } from "@/app/backend/services/webhook/webhook.service";
 import { GitWebhookHandlerFactory } from "@/app/backend/infrastructure/factory/handler/GitWebhookHandlerFactory";
 
 export class WebhookController {
-  private webhookService: WebhookService;
-
-  constructor() {
-    this.webhookService = new WebhookService();
-  }
+  private readonly webhookService = new WebhookService();
 
   async handleWebhook(payload: any, webhookUuid: string) {
     try {
-      const branchRef = payload.ref;
-
-      // Use Factory to get the correct webhook handler (GitHub or GitLab)
-      const webhookHandler = GitWebhookHandlerFactory.getHandler(payload);
-      const repoFullName = webhookHandler.extractRepoName(payload);
-
-      if (!branchRef || !branchRef.startsWith("refs/heads/")) {
-        return NextResponse.json(
-          { message: "Not a branch commit or invalid event type" },
-          { status: 400 }
-        );
+      const ref = payload.ref;
+      if (!ref?.startsWith("refs/heads/")) {
+        return this.badRequest("Not a branch commit or invalid event type");
       }
 
-      const baseBranch = branchRef.replace("refs/heads/", "");
-
-      if (baseBranch.endsWith("_unitTest")) {
-        return NextResponse.json(
-          { message: "Skipping webhook for unit test branch" },
-          { status: 200 }
-        );
+      const branch = ref.replace("refs/heads/", "");
+      if (branch.endsWith("_unitTest")) {
+        return this.success("Skipping webhook for unit test branch");
       }
 
-      const response = await this.webhookService.processWebhook(
-        repoFullName,
-        baseBranch,
+      const handler = GitWebhookHandlerFactory.getHandler(payload);
+      const repoName = handler.extractRepoName(payload);
+
+      const result = await this.webhookService.processWebhook(
+        repoName,
+        branch,
         webhookUuid
       );
-
-      return NextResponse.json(response, { status: 201 });
-    } catch (error: any) {
+      return NextResponse.json(result, { status: 201 });
+    } catch (err: any) {
       console.error(
         "Error processing webhook:",
-        error.response?.data || error.message
+        err.response?.data || err.message
       );
-      return NextResponse.json(
-        {
-          message: "Failed to process webhook",
-          error: error.message,
-        },
-        { status: 500 }
-      );
+      return this.serverError("Failed to process webhook", err.message);
     }
+  }
+
+  private badRequest(message: string) {
+    return NextResponse.json({ message }, { status: 400 });
+  }
+
+  private success(message: string) {
+    return NextResponse.json({ message }, { status: 200 });
+  }
+
+  private serverError(message: string, error: string) {
+    return NextResponse.json({ message, error }, { status: 500 });
   }
 }
