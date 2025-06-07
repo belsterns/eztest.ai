@@ -7,7 +7,13 @@ import {
   HumanMessagePromptTemplate,
   SystemMessagePromptTemplate,
 } from "@langchain/core/prompts";
-import { configureTestScript, createTestConfig, generateDefaultPackageManager } from "../../utils/githubProviderUtils";
+import {
+  configureTestScript,
+  createTestConfig,
+  generateDefaultPackageManager,
+} from "../../utils/githubProviderUtils";
+import { StaticMessage } from "../../constants/StaticMessages";
+import { getSupportedExtensions } from "../../utils/supportedExtensions";
 
 export class GitHubProvider implements GitProvider {
   constructor(
@@ -236,26 +242,7 @@ export class GitHubProvider implements GitProvider {
         return exclusionPatterns.some((pattern) => pattern.test(lowerPath));
       };
 
-      const supportedExtensions = [
-        ".js",
-        ".ts",
-        ".jsx",
-        ".tsx",
-        ".py",
-        ".java",
-        ".go",
-        ".rb",
-        ".php",
-        ".cs",
-        ".swift",
-        ".kt",
-        ".kts",
-        ".dart",
-        ".html",
-        ".css",
-        ".scss",
-        ".vue",
-      ];
+      const supportedExtensions = getSupportedExtensions();
 
       const sourceFiles = fileContent.filter((item) => {
         const ext = item.filePath.toLowerCase();
@@ -275,7 +262,7 @@ export class GitHubProvider implements GitProvider {
       });
 
       const createdConfigs = new Set<string>();
-      const fileMap: Record<string, typeof fileContent[0]> = {};
+      const fileMap: Record<string, (typeof fileContent)[0]> = {};
       const filePathsOnly: string[] = [];
 
       for (const file of fileContent) {
@@ -286,13 +273,13 @@ export class GitHubProvider implements GitProvider {
 
       let pkg: any;
       let matchedExt: string | null = null;
-      
+
       if (fileMap["package.json"]) {
         const existingPkg = JSON.parse(fileMap["package.json"].content);
         const result = configureTestScript(existingPkg, sourceFiles);
         pkg = result.pkg;
         matchedExt = result.matchedExt;
-      
+
         await this.createNewFileForInitializeRepo(
           repoFullName,
           newBranch,
@@ -304,38 +291,55 @@ export class GitHubProvider implements GitProvider {
           },
           Buffer.from(JSON.stringify(pkg, null, 2)).toString("base64")
         );
-      
+
         createdConfigs.add("package.json");
       } else {
         try {
-          const { response, extensions } = await generateDefaultPackageManager(filePathsOnly);
-      
+          const { response, extensions } =
+            await generateDefaultPackageManager(filePathsOnly);
+
           const content =
             typeof response.content === "string"
               ? response.content
               : response.content?.toString() || "";
-      
+
           if (!content.trim().startsWith("[")) {
-            console.error("Model response for package manager config is not a JSON array.");
+            console.error(
+              "Model response for package manager config is not a JSON array."
+            );
           } else {
             const parsedValue = JSON.parse(content);
             const { testContent } = parsedValue[0];
             matchedExt = extensions;
             pkg = JSON.parse(testContent); // The generated package.json content
-      
-            await this.parseAndCreateConfigFiles(response, createdConfigs, repoFullName, newBranch);
+
+            await this.parseAndCreateConfigFiles(
+              response,
+              createdConfigs,
+              repoFullName,
+              newBranch
+            );
           }
         } catch (err) {
           console.error("Error generating package manager:", err);
         }
       }
-      
+
       // Now generate the test config
       if (pkg && matchedExt) {
-        const testConfigResponse = await createTestConfig(pkg, filePathsOnly, matchedExt);
-        await this.parseAndCreateConfigFiles(testConfigResponse, createdConfigs, repoFullName, newBranch);
+        const testConfigResponse = await createTestConfig(
+          pkg,
+          filePathsOnly,
+          matchedExt
+        );
+        await this.parseAndCreateConfigFiles(
+          testConfigResponse,
+          createdConfigs,
+          repoFullName,
+          newBranch
+        );
       }
-      
+
       const prompt = ChatPromptTemplate.fromMessages([
         SystemMessagePromptTemplate.fromTemplate(`
           You are an expert developer responsible for generating realistic, working test cases from source code.
@@ -377,7 +381,7 @@ export class GitHubProvider implements GitProvider {
           const response: any = await chain.invoke({
             "file.filePath": file.filePath,
             "file.content": file.content,
-            "filePathsOnly": filePathsOnly,
+            filePathsOnly: filePathsOnly,
           });
 
           const content =
@@ -433,8 +437,8 @@ export class GitHubProvider implements GitProvider {
         repoFullName,
         newBranch,
         baseBranch,
-        `Initialize Repository with Tests`,
-        `Auto-generated test files and configuration for detected source code.`
+        StaticMessage.InitializeRepoWithTests,
+        StaticMessage.GeneratedTestFilesAndConfiguration
       );
 
       await prisma.repositories.update({
@@ -453,29 +457,28 @@ export class GitHubProvider implements GitProvider {
     }
   }
 
-  private  async parseAndCreateConfigFiles(
+  private async parseAndCreateConfigFiles(
     response: any,
     createdConfigs: any,
     repoFullName: string,
-    newBranch: string,
+    newBranch: string
   ): Promise<void> {
-    // console.log("testconfig response -----------------> ", response);
     const content =
       typeof response?.content === "string"
         ? response.content
         : response?.content?.toString() || "";
-  
+
     if (!content.trim().startsWith("[")) {
       console.error("Model response for config is not a JSON array.");
       return;
     }
-  
+
     try {
       const parsedConfigs = JSON.parse(content);
-  
+
       for (const { testPath, testContent } of parsedConfigs) {
         if (createdConfigs.has(testPath)) continue;
-  
+
         await this.createNewFileForInitializeRepo(
           repoFullName,
           newBranch,
@@ -487,7 +490,7 @@ export class GitHubProvider implements GitProvider {
           },
           Buffer.from(testContent).toString("base64")
         );
-  
+
         createdConfigs.add(testPath);
       }
 
@@ -552,8 +555,8 @@ export class GitHubProvider implements GitProvider {
         message,
         branch: newBranch,
         committer: {
-          name: "EZTest AI",
-          email: "eztest.ai@commit.com",
+          name: process.env.PR_COMMITER_NAME ?? "EZTest AI",
+          email: process.env.PR_COMMITER_EMAIL ?? "eztest.ai@commit.com",
         },
         content,
       }
@@ -771,7 +774,10 @@ export class GitHubProvider implements GitProvider {
     newBranch: string
   ): Promise<any> {
     try {
-      const baseBranchResponse = await this.branchExists(repoFullName,baseBranch);
+      const baseBranchResponse = await this.branchExists(
+        repoFullName,
+        baseBranch
+      );
       const latestCommitSHA = baseBranchResponse.object.sha;
 
       // Fetch the commit details
