@@ -58,6 +58,9 @@ export class StaticMessage {
   static WorkspaceFetchedSuccessfully =
     "Workspace details fetched successfully.";
   static WorkspaceDeletedSuccessfully = "Workspace deleted successfully.";
+  static InitializeRepoWithTests = "Initialize Repository with tests.";
+  static GeneratedTestFilesAndConfiguration =
+    "Auto-generated test files and configuration for detected source code.";
 }
 
 export class OnboardingType {
